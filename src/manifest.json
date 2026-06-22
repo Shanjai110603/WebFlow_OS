@@ -5,6 +5,7 @@
   "description": "Local-first page fixer, accessibility checker, and privacy/trust auditing workspace.",
   "permissions": [
     "activeTab",
+    "tabs",
     "storage",
     "sidePanel",
     "scripting"

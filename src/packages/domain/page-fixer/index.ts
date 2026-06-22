@@ -2,7 +2,6 @@ import { FixerState, TypographyConfig, StickyCandidate } from '../../shared/type
 
 export class FixerController {
   private activeStyles: HTMLStyleElement | null = null;
-  private currentState: FixerState | null = null;
 
   constructor(private document: Document, private window: Window) {}
 
@@ -10,7 +9,6 @@ export class FixerController {
    * Applies the selected styling rules directly to the DOM.
    */
   public apply(state: FixerState): void {
-    this.currentState = state;
     
     if (!this.activeStyles) {
       this.activeStyles = this.document.createElement('style');

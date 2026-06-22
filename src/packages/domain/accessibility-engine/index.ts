@@ -128,9 +128,13 @@ export const MissingFormLabelRule: AuditRule = {
       // Check if label targets via ID
       const id = el.id;
       if (id) {
-        const matchingLabel = doc.querySelector(`label[for="${id}"]`);
-        if (matchingLabel) {
-          hasLabel = true;
+        try {
+          const matchingLabel = doc.querySelector(`label[for="${id}"]`);
+          if (matchingLabel) {
+            hasLabel = true;
+          }
+        } catch {
+          // Ignore invalid selector queries
         }
       }
 
@@ -167,7 +171,7 @@ export const EmptyButtonRule: AuditRule = {
   async run(context: ScanContext): Promise<RawIssue[]> {
     const doc = context.document;
     const issues: RawIssue[] = [];
-    const elements = doc.querySelectorAll('button, a');
+    const elements = doc.querySelectorAll('button, a, [role="button"]');
 
     elements.forEach(el => {
       const element = el as HTMLElement;
@@ -248,6 +252,8 @@ export const ContrastRule: AuditRule = {
     const doc = context.document;
     const win = context.window;
     const issues: RawIssue[] = [];
+
+    if (!doc.body) return [];
 
     // Walk the body nodes to find elements with visible text nodes
     walkDOM(doc.body, (el) => {

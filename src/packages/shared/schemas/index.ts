@@ -57,6 +57,7 @@ export const IssueLocatorSchema = z.object({
 
 export const AuditIssueSchema = z.object({
   id: z.string(),
+  ruleId: z.string(),
   category: z.enum(['accessibility', 'privacy', 'ux', 'readability']),
   subcategory: z.string(),
   severity: z.enum(['critical', 'warning', 'info']),

@@ -1,10 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { 
   parseRGB, 
-  calculateContrastRatio, 
-  calculateTextSimilarity 
+  calculateContrastRatio 
 } from '../../src/packages/shared/utils';
-import { TRACKER_RULES, SCORING_POLICIES } from '../../src/packages/shared/constants';
+import { TRACKER_RULES } from '../../src/packages/shared/constants';
 import { ScoringEngine } from '../../src/packages/domain/scoring-engine';
 import { HistoryEngine } from '../../src/packages/domain/history-engine';
 import { ReportEngine } from '../../src/packages/domain/report-engine';

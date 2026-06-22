@@ -195,6 +195,7 @@ export class IssueNormalizer {
 
     return {
       id: raw.id,
+      ruleId: raw.ruleId,
       category: category as 'accessibility' | 'privacy' | 'ux' | 'readability',
       subcategory: details.subcategory,
       severity: raw.severity,

@@ -78,7 +78,7 @@ export const BadLineHeightRule: AuditRule = {
       // If lineHeight is a specific pixel value
       if (lineHeightStr && lineHeightStr.endsWith('px')) {
         const lineHeight = parseFloat(lineHeightStr);
-        const ratio = lineHeight / fontSize;
+        const ratio = fontSize > 0 ? lineHeight / fontSize : 0;
         
         if (ratio < 1.2) {
           issues.push({
@@ -118,7 +118,8 @@ export const StickyOverlayRule: AuditRule = {
 
       if (style.position === 'fixed' || style.position === 'sticky') {
         const rect = element.getBoundingClientRect();
-        const areaRatio = (rect.width * rect.height) / (win.innerWidth * win.innerHeight);
+        const viewportArea = win.innerWidth * win.innerHeight;
+        const areaRatio = viewportArea > 0 ? (rect.width * rect.height) / viewportArea : 0;
 
         // Flag fixed overlays covering more than 20% of the active viewport area
         // Skip structural headers/footers

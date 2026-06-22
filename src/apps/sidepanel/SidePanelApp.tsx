@@ -1,8 +1,85 @@
 import React, { useState, useEffect } from 'react';
-import { FixerState, AuditSession, ComparisonReport, AuditIssue } from '@shared/types';
+import { FixerState, AuditSession, ComparisonReport, TypographyConfig } from '@shared/types';
 import { DEFAULT_FIXER_STATE } from '@shared/constants';
 
 type TabType = 'dashboard' | 'fixer' | 'accessibility' | 'privacy' | 'history';
+
+interface CircularGaugeProps {
+  score: number;
+  label: string;
+  colorVar: string;
+  onClick?: () => void;
+}
+
+const CircularGauge: React.FC<CircularGaugeProps> = ({ score, label, colorVar, onClick }) => {
+  const radius = 20;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (score / 100) * circumference;
+
+  return (
+    <button
+      className="card flex flex-col items-center gap-3"
+      onClick={onClick}
+      style={{
+        cursor: onClick ? 'pointer' : 'default',
+        textAlign: 'center',
+        padding: '12px 8px',
+        width: '100%',
+        background: 'var(--bg-secondary)',
+        border: '1px solid var(--border-color)',
+        borderRadius: '12px',
+        transition: 'var(--transition-fast)',
+        outline: 'none',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center'
+      }}
+    >
+      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+        {label}
+      </span>
+      <div style={{ position: 'relative', width: 50, height: 50 }}>
+        <svg width="50" height="50" style={{ transform: 'rotate(-90deg)' }}>
+          <circle
+            cx="25"
+            cy="25"
+            r={radius}
+            fill="transparent"
+            stroke="var(--border-color)"
+            strokeWidth="4"
+          />
+          <circle
+            cx="25"
+            cy="25"
+            r={radius}
+            fill="transparent"
+            stroke={colorVar}
+            strokeWidth="4"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            style={{ transition: 'stroke-dashoffset 0.5s ease-in-out' }}
+          />
+        </svg>
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontWeight: 700,
+          fontSize: 12,
+          color: 'var(--text-primary)'
+        }}>
+          {score}
+        </div>
+      </div>
+    </button>
+  );
+};
 
 export const SidePanelApp: React.FC = () => {
   const [tabId, setTabId] = useState<number | null>(null);
@@ -323,18 +400,23 @@ export const SidePanelApp: React.FC = () => {
             {session ? (
               <>
                 <div className="grid grid-cols-3 gap-2">
-                  <button className="card flex flex-col items-center gap-2" onClick={() => setActiveTab('accessibility')} style={{ cursor: 'pointer', textAlign: 'center', padding: '12px 8px' }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Accessibility</span>
-                    <span style={{ fontSize: 22, fontWeight: 700, color: 'var(--accent-purple-hover)' }}>{session.scores.accessibility}</span>
-                  </button>
-                  <button className="card flex flex-col items-center gap-2" onClick={() => setActiveTab('privacy')} style={{ cursor: 'pointer', textAlign: 'center', padding: '12px 8px' }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Privacy</span>
-                    <span style={{ fontSize: 22, fontWeight: 700, color: 'var(--accent-green)' }}>{session.scores.privacy}</span>
-                  </button>
-                  <button className="card flex flex-col items-center gap-2" style={{ textAlign: 'center', padding: '12px 8px' }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>UX</span>
-                    <span style={{ fontSize: 22, fontWeight: 700, color: 'var(--accent-amber)' }}>{session.scores.ux}</span>
-                  </button>
+                  <CircularGauge
+                    score={session.scores.accessibility}
+                    label="Accessibility"
+                    colorVar="var(--accent-purple)"
+                    onClick={() => setActiveTab('accessibility')}
+                  />
+                  <CircularGauge
+                    score={session.scores.privacy}
+                    label="Privacy"
+                    colorVar="var(--accent-green)"
+                    onClick={() => setActiveTab('privacy')}
+                  />
+                  <CircularGauge
+                    score={session.scores.ux}
+                    label="UX"
+                    colorVar="var(--accent-amber)"
+                  />
                 </div>
 
                 <div className="card flex items-center justify-between">
@@ -716,25 +798,55 @@ export const SidePanelApp: React.FC = () => {
 
               {/* Compare report overlay render */}
               {compareReport && (
-                <div className="card flex flex-col gap-3" style={{ background: 'var(--bg-tertiary)', marginTop: 12 }}>
-                  <h4 style={{ fontWeight: 700 }}>Comparison Results: {compareReport.domain}</h4>
+                <div className="card flex flex-col gap-3" style={{ background: 'var(--bg-tertiary)', marginTop: 12, textAlign: 'left' }}>
+                  <h4 style={{ fontWeight: 700, fontSize: 14 }}>Comparison Results: {compareReport.domain}</h4>
                   
                   <div className="grid grid-cols-2 gap-2" style={{ textAlign: 'center', fontSize: 12 }}>
-                    <div className="card">
-                      <p style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>Score changes</p>
+                    <div className="card" style={{ padding: 10 }}>
+                      <p style={{ fontWeight: 700, color: 'var(--text-secondary)', fontSize: 11 }}>Score Delta</p>
                       <p style={{ fontSize: 18, fontWeight: 800, marginTop: 4, color: compareReport.scoreDeltas.overall.difference >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' }}>
                         {compareReport.scoreDeltas.overall.difference >= 0 ? '+' : ''}{compareReport.scoreDeltas.overall.difference}
                       </p>
                       <p style={{ fontSize: 10, color: 'var(--text-secondary)' }}>({compareReport.scoreDeltas.overall.before} ➔ {compareReport.scoreDeltas.overall.after})</p>
                     </div>
-                    <div className="card">
-                      <p style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>Changes list</p>
+                    <div className="card" style={{ padding: 10 }}>
+                      <p style={{ fontWeight: 700, color: 'var(--text-secondary)', fontSize: 11 }}>Issues Count</p>
                       <p style={{ fontSize: 12, marginTop: 4 }}>
                         Resolved: <strong style={{ color: 'var(--accent-green)' }}>{compareReport.resolvedIssues.length}</strong><br />
                         New: <strong style={{ color: 'var(--accent-red)' }}>{compareReport.newIssues.length}</strong>
                       </p>
                     </div>
                   </div>
+
+                  {/* List of Resolved Issues */}
+                  {compareReport.resolvedIssues.length > 0 && (
+                    <div className="flex flex-col gap-1" style={{ marginTop: 4 }}>
+                      <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-green)' }}>Resolved Issues ({compareReport.resolvedIssues.length})</p>
+                      <div style={{ maxHeight: 100, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {compareReport.resolvedIssues.map(issue => (
+                          <div key={issue.id} style={{ fontSize: 11, padding: '6px 8px', background: 'var(--bg-secondary)', borderRadius: 6, borderLeft: '3px solid var(--accent-green)', color: 'var(--text-primary)' }}>
+                            <div style={{ fontWeight: 600 }}>{issue.title}</div>
+                            <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2 }}>{issue.description}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* List of New Issues */}
+                  {compareReport.newIssues.length > 0 && (
+                    <div className="flex flex-col gap-1" style={{ marginTop: 4 }}>
+                      <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-red)' }}>New Issues ({compareReport.newIssues.length})</p>
+                      <div style={{ maxHeight: 100, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {compareReport.newIssues.map(issue => (
+                          <div key={issue.id} style={{ fontSize: 11, padding: '6px 8px', background: 'var(--bg-secondary)', borderRadius: 6, borderLeft: '3px solid var(--accent-red)', color: 'var(--text-primary)' }}>
+                            <div style={{ fontWeight: 600 }}>{issue.title}</div>
+                            <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2 }}>{issue.description}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <button className="btn btn-secondary" onClick={() => setCompareReport(null)} style={{ fontSize: 11, padding: 6 }}>
                     Clear Comparison

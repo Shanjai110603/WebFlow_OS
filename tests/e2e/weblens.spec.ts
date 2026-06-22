@@ -36,7 +36,14 @@ test.describe('WebLens OS - Playwright E2E Extension Tests', () => {
   });
 
   test('should load Popup and render pocket controls dashboard', async () => {
+    // Navigate the first tab to a standard webpage to avoid system page error
+    const activePage = await context.newPage();
+    await activePage.goto('https://example.com');
+    await activePage.bringToFront();
+
     const page = await context.newPage();
+    page.on('console', msg => console.log('POPUP CONSOLE:', msg.text()));
+    page.on('pageerror', err => console.error('POPUP PAGEERROR:', err));
     await page.goto(`chrome-extension://${extensionId}/apps/popup/index.html`);
 
     // Verify logo and pocket elements
@@ -47,7 +54,14 @@ test.describe('WebLens OS - Playwright E2E Extension Tests', () => {
   });
 
   test('should load Side Panel and render radial gauges workspace', async () => {
+    // Navigate the first tab to a standard webpage to avoid system page error
+    const activePage = await context.newPage();
+    await activePage.goto('https://example.com');
+    await activePage.bringToFront();
+
     const page = await context.newPage();
+    page.on('console', msg => console.log('SIDEPANEL CONSOLE:', msg.text()));
+    page.on('pageerror', err => console.error('SIDEPANEL PAGEERROR:', err));
     await page.goto(`chrome-extension://${extensionId}/apps/sidepanel/index.html`);
 
     // Verify workspace tabs

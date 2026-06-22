@@ -1,8 +1,75 @@
 import { FixerController } from '@domain/page-fixer';
 import { HighlightingEngine } from '@domain/highlighting-engine';
-import { FixerState } from '@shared/types';
+import { createDefaultRegistry } from '@domain/audit-core';
+import { TRACKER_RULES } from '@shared/constants';
+import { FixerState, ResourceSummary } from '@shared/types';
 
 const fixer = new FixerController(document, window);
+const ruleRegistry = createDefaultRegistry();
+
+function processPageResources(
+  pageUrl: string,
+  pageDomain: string,
+  resources: string[]
+): {
+  processedResources: ResourceSummary[];
+  trackerDomains: Set<string>;
+  totalTrackers: number;
+  isMixedContent: boolean;
+} {
+  const processedResources: ResourceSummary[] = [];
+  const trackerDomains = new Set<string>();
+  let totalTrackers = 0;
+  let isMixedContent = false;
+
+  const isHttpsParent = pageUrl.startsWith('https:');
+
+  resources.forEach((url: string) => {
+    try {
+      const resUrl = new URL(url);
+      const resDomain = resUrl.hostname;
+      const isThirdParty = resDomain !== pageDomain && !resDomain.endsWith('.' + pageDomain);
+
+      // Sniff mixed content
+      if (isHttpsParent && resUrl.protocol === 'http:') {
+        isMixedContent = true;
+      }
+
+      // Check tracker matches
+      let isTracker = false;
+      let trackerCategory: 'analytics' | 'advertising' | 'social' | 'utility' | undefined;
+
+      for (const rule of TRACKER_RULES) {
+        if (url.includes(rule.pattern)) {
+          isTracker = true;
+          trackerCategory = rule.category;
+          trackerDomains.add(resDomain);
+          totalTrackers++;
+          break;
+        }
+      }
+
+      processedResources.push({
+        url,
+        domain: resDomain,
+        type: 'resource',
+        thirdParty: isThirdParty,
+        tracker: isTracker,
+        trackerCategory
+      });
+    } catch {
+      // Ignore invalid URLs
+    }
+  });
+
+  return {
+    processedResources,
+    trackerDomains,
+    totalTrackers,
+    isMixedContent
+  };
+}
+
 let activeSettings: FixerState | null = null;
 let currentHighlightSelector: string | null = null;
 
@@ -17,7 +84,7 @@ chrome.runtime.sendMessage({ type: 'GET_FIXER_SETTINGS', payload: { tabId: 0 } }
 });
 
 // --- Message Router ---
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   const type = message.type;
 
   switch (type) {
@@ -26,28 +93,52 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
 
     case 'EXECUTE_SCRAPE':
-      try {
-        const resources = window.performance
-          ? window.performance.getEntriesByType('resource').map(r => r.name)
-          : [];
+      (async () => {
+        try {
+          const rawResources = window.performance
+            ? window.performance.getEntriesByType('resource').map(r => r.name)
+            : [];
 
-        sendResponse({
-          success: true,
-          data: {
-            url: window.location.href,
-            domain: window.location.hostname,
-            title: document.title,
-            resources,
-            htmlContext: document.documentElement.outerHTML,
-            viewport: { width: window.innerWidth, height: window.innerHeight }
-          }
-        });
-      } catch (err: any) {
-        sendResponse({
-          success: false,
-          error: { code: 'SCAN_FAILED', message: err.message || 'Scrape execution failed.' }
-        });
-      }
+          const url = window.location.href;
+          const domain = window.location.hostname;
+          const title = document.title;
+
+          // Process resources and trackers locally in page context
+          const { processedResources, trackerDomains, isMixedContent } = processPageResources(
+            url,
+            domain,
+            rawResources
+          );
+
+          // Build context for rule scanning on native DOM tree
+          const scanContext = {
+            document,
+            window,
+            resources: processedResources
+          };
+
+          const rawIssues = await ruleRegistry.runAll(scanContext);
+
+          sendResponse({
+            success: true,
+            data: {
+              url,
+              domain,
+              title,
+              rawIssues,
+              processedResources,
+              trackerDomainsCount: trackerDomains.size,
+              isMixedContent,
+              viewport: { width: window.innerWidth, height: window.innerHeight }
+            }
+          });
+        } catch (err: any) {
+          sendResponse({
+            success: false,
+            error: { code: 'SCAN_FAILED', message: err.message || 'Scrape and audit scan execution failed.' }
+          });
+        }
+      })();
       break;
 
     case 'INJECT_FIXER_STATE':
@@ -135,7 +226,7 @@ if (document.body) {
 function wrapHistoryEvent(type: 'pushState' | 'replaceState') {
   const original = window.history[type];
   return function (this: any, ...args: any[]) {
-    const result = original.apply(this, args);
+    const result = (original as any).apply(this, args);
     const event = new CustomEvent('weblensHistoryChange', { detail: { type } });
     window.dispatchEvent(event);
     return result;

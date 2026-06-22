@@ -1,13 +1,11 @@
-import { createDefaultRegistry, IssueNormalizer } from '@domain/audit-core';
+import { IssueNormalizer } from '@domain/audit-core';
 import { ScoringEngine } from '@domain/scoring-engine';
 import { HistoryEngine } from '@domain/history-engine';
 import { ReportEngine } from '@domain/report-engine';
 import { StorageClient } from '@platform/chrome-storage';
-import { CommandMap, CommandResponse, AuditSession, ResourceSummary, RawIssue, AuditIssue } from '@shared/types';
-import { TRACKER_RULES } from '@shared/constants';
+import { CommandMap, CommandResponse, AuditSession, AuditIssue } from '@shared/types';
 import { PayloadValidators } from '@shared/schemas';
-
-const ruleRegistry = createDefaultRegistry();
+import { DEFAULT_FIXER_STATE } from '@shared/constants';
 
 // Keep message routing open
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -62,40 +60,35 @@ async function routeCommand(message: any, sender: chrome.runtime.MessageSender):
       // 1. Programmatically inject content script if not loaded
       await ensureContentScriptInjected(tabId);
 
-      // 2. Instruct content script to scrape webpage metrics
-      const scrapeRes = await sendToTabWithTimeout(tabId, { type: 'EXECUTE_SCRAPE' }, 4000);
+      // 2. Instruct content script to run rules audit in native page layout environment
+      const scrapeRes = await sendToTabWithTimeout(tabId, { type: 'EXECUTE_SCRAPE' }, 6000);
       if (!scrapeRes.success) {
         return scrapeRes;
       }
 
-      const { url, title, domain, resources, htmlContext, viewport } = scrapeRes.data;
+      const {
+        url,
+        title,
+        domain,
+        rawIssues,
+        processedResources,
+        trackerDomainsCount,
+        isMixedContent,
+        viewport
+      } = scrapeRes.data;
 
-      // 3. Process resource tracking logs
-      const { processedResources, trackerDomains, totalTrackers, isMixedContent } = processPageResources(url, domain, resources);
-
-      // 4. Run rules engines
-      const scanContext = {
-        document: new DOMParser().parseFromString(htmlContext, 'text/html'),
-        window: {
-          location: { href: url, protocol: url.startsWith('https:') ? 'https:' : 'http:' }
-        } as any,
-        resources: processedResources
-      };
-
-      const rawIssues = await ruleRegistry.runAll(scanContext);
-
-      // 5. Normalize raw issues
+      // 3. Normalize raw issues
       const normalizedIssues: AuditIssue[] = rawIssues.map(IssueNormalizer.normalize);
 
-      // 6. Compute scores & explanations
+      // 4. Compute scores & explanations
       const scores = ScoringEngine.calculate(
         rawIssues,
         url.startsWith('http:'),
-        trackerDomains.size,
+        trackerDomainsCount,
         isMixedContent
       );
 
-      // 7. Assemble AuditSession record
+      // 5. Assemble AuditSession record
       const fixerState = await StorageClient.getPreferences(domain);
       const session: AuditSession = {
         id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
@@ -114,7 +107,7 @@ async function routeCommand(message: any, sender: chrome.runtime.MessageSender):
         }
       };
 
-      // 8. Save session in storage
+      // 6. Save session in storage
       await StorageClient.saveAuditSession(session);
 
       return { success: true, data: session };
@@ -275,69 +268,6 @@ async function sendToTabWithTimeout(tabId: number, msg: any, timeoutMs: number):
       }
     });
   });
-}
-
-function processPageResources(
-  pageUrl: string,
-  pageDomain: string,
-  resources: any[]
-): {
-  processedResources: ResourceSummary[];
-  trackerDomains: Set<string>;
-  totalTrackers: number;
-  isMixedContent: boolean;
-} {
-  const processedResources: ResourceSummary[] = [];
-  const trackerDomains = new Set<string>();
-  let totalTrackers = 0;
-  let isMixedContent = false;
-
-  const isHttpsParent = pageUrl.startsWith('https:');
-
-  resources.forEach((url: string) => {
-    try {
-      const resUrl = new URL(url);
-      const resDomain = resUrl.hostname;
-      const isThirdParty = resDomain !== pageDomain && !resDomain.endsWith('.' + pageDomain);
-
-      // Sniff mixed content
-      if (isHttpsParent && resUrl.protocol === 'http:') {
-        isMixedContent = true;
-      }
-
-      // Check tracker matches
-      let isTracker = false;
-      let trackerCategory: 'analytics' | 'advertising' | 'social' | 'utility' | undefined;
-
-      for (const rule of TRACKER_RULES) {
-        if (url.includes(rule.pattern)) {
-          isTracker = true;
-          trackerCategory = rule.category;
-          trackerDomains.add(resDomain);
-          totalTrackers++;
-          break;
-        }
-      }
-
-      processedResources.push({
-        url,
-        domain: resDomain,
-        type: 'resource',
-        thirdParty: isThirdParty,
-        tracker: isTracker,
-        trackerCategory
-      });
-    } catch {
-      // Ignore invalid URLs
-    }
-  });
-
-  return {
-    processedResources,
-    trackerDomains,
-    totalTrackers,
-    isMixedContent
-  };
 }
 
 async function getTab(tabId: number): Promise<chrome.tabs.Tab | null> {

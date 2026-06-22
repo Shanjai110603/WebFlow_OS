@@ -130,7 +130,8 @@ export const OverlayDarkPatternRule: AuditRule = {
 
       if (style.position === 'fixed' || style.position === 'sticky') {
         const rect = element.getBoundingClientRect();
-        const areaRatio = (rect.width * rect.height) / (win.innerWidth * win.innerHeight);
+        const viewportArea = win.innerWidth * win.innerHeight;
+        const areaRatio = viewportArea > 0 ? (rect.width * rect.height) / viewportArea : 0;
 
         // Scan overlays occupying visible space and containing cookie banner keywords
         if (areaRatio > 0.05) {

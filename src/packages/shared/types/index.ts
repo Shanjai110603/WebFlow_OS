@@ -24,6 +24,7 @@ export interface IssueLocator {
 // --- B. Normalized Issue Model ---
 export interface AuditIssue {
   id: string;
+  ruleId: string;
   category: 'accessibility' | 'privacy' | 'ux' | 'readability';
   subcategory: string;
   severity: 'critical' | 'warning' | 'info';
@@ -164,4 +165,103 @@ export interface ErrorPayload {
   timestamp: number;
   context?: Record<string, unknown>;
   recoverable: boolean;
+}
+
+// --- I. Missing Platform & Domain Types ---
+export interface CategoryPolicy {
+  category: 'accessibility' | 'privacy' | 'ux';
+  startingScore: number;
+  maxDeductionCap: number;
+  deductionWeights: Record<string, number>;
+}
+
+export interface ScanContext {
+  document: Document;
+  window: Window;
+  resources: ResourceSummary[];
+}
+
+export interface AuditRule {
+  id: string;
+  name: string;
+  category: 'accessibility' | 'privacy' | 'readability' | 'ux';
+  severityDefault: 'critical' | 'warning' | 'info';
+  scoreImpact: number;
+  run(context: ScanContext): Promise<RawIssue[]>;
+}
+
+export interface StickyCandidate {
+  element: HTMLElement;
+  reasons: string[];
+  score: number;
+  areaRatio: number;
+  zIndex: number;
+  fixedOrSticky: boolean;
+  likelyBlocking: boolean;
+}
+
+export interface CommandError {
+  code:
+    | 'MESSAGING_TIMEOUT'
+    | 'INVALID_PAYLOAD'
+    | 'UNKNOWN_COMMAND'
+    | 'STORAGE_CORRUPTED'
+    | 'SCAN_FAILED'
+    | 'EXPORT_FAILED'
+    | 'HIGHLIGHT_FAILED'
+    | 'CONTENT_SCRIPT_UNAVAILABLE'
+    | 'PERMISSION_DENIED';
+  message: string;
+  context?: Record<string, unknown>;
+}
+
+export type CommandResponse<T> =
+  | { success: true; data: T }
+  | { success: false; error: CommandError };
+
+export interface CommandMap {
+  RUN_AUDIT: {
+    payload: { tabId: number };
+    response: AuditSession;
+  };
+  GET_AUDIT: {
+    payload: { tabId: number };
+    response: AuditSession | null;
+  };
+  APPLY_FIXER_SETTINGS: {
+    payload: { tabId: number; settings: FixerState };
+    response: void;
+  };
+  GET_FIXER_SETTINGS: {
+    payload: { tabId: number };
+    response: FixerState;
+  };
+  HIGHLIGHT_ISSUE: {
+    payload: { tabId: number; selector: string };
+    response: void;
+  };
+  CLEAR_HIGHLIGHT: {
+    payload: { tabId: number };
+    response: void;
+  };
+  LOAD_HISTORY: {
+    payload: Record<string, never>;
+    response: AuditSession[];
+  };
+  DELETE_HISTORY: {
+    payload: { id: string };
+    response: void;
+  };
+  PIN_HISTORY: {
+    payload: { id: string; pinned: boolean };
+    response: void;
+  };
+  COMPARE_AUDITS: {
+    payload: { idA: string; idB: string };
+    response: ComparisonReport;
+  };
+  EXPORT_REPORT: {
+    payload: { id: string; format: 'md' | 'json' };
+    response: string;
+  };
 }
