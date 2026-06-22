@@ -179,3 +179,181 @@ export const DenseContentRule: AuditRule = {
     return issues;
   }
 };
+
+// --- 5. Excessive Line Length Rule ---
+export const ExcessiveLineLengthRule: AuditRule = {
+  id: 'excessive-line-length',
+  name: 'Line Length Auditor',
+  category: 'readability',
+  severityDefault: 'warning',
+  scoreImpact: 10,
+  async run(context: ScanContext): Promise<RawIssue[]> {
+    const doc = context.document;
+    const win = context.window;
+    const issues: RawIssue[] = [];
+    const paragraphs = doc.querySelectorAll('p');
+
+    paragraphs.forEach(p => {
+      const el = p as HTMLElement;
+      const text = el.textContent?.trim() || '';
+      if (text.length < 150) return;
+
+      const rect = el.getBoundingClientRect();
+      const style = win.getComputedStyle(el);
+      const fontSize = parseFloat(style.fontSize) || 16;
+      
+      const estimatedCpl = fontSize > 0 ? rect.width / (fontSize * 0.5) : 0;
+
+      if (estimatedCpl > 90 && rect.width > 700) {
+        issues.push({
+          id: `line-length-${Math.round(estimatedCpl)}-${Math.random()}`,
+          engine: 'readability',
+          ruleId: 'excessive-line-length',
+          severity: 'warning',
+          locator: createLocator(el),
+          message: `Paragraph line width is too wide (${Math.round(estimatedCpl)} estimated characters per line). Paragraphs exceeding 80 characters reduce visual tracking readability.`,
+          evidence: text.substring(0, 100),
+          metadata: { estimatedCpl, width: rect.width },
+          confidence: 'heuristic',
+          suggestedFix: 'Limit the reading container width using CSS (e.g. max-width: 65ch or max-width: 700px).'
+        });
+      }
+    });
+
+    return issues;
+  }
+};
+
+// --- 6. Cramped Tap Targets Rule ---
+export const CrampedTapTargetsRule: AuditRule = {
+  id: 'cramped-tap-targets',
+  name: 'Cramped Tap Targets Scanner',
+  category: 'readability',
+  severityDefault: 'warning',
+  scoreImpact: 10,
+  async run(context: ScanContext): Promise<RawIssue[]> {
+    const doc = context.document;
+    const issues: RawIssue[] = [];
+    const targets = Array.from(doc.querySelectorAll('button, a[href], [role="button"]')) as HTMLElement[];
+
+    for (let i = 0; i < targets.length; i++) {
+      const rectA = targets[i].getBoundingClientRect();
+      if (rectA.width === 0 && rectA.height === 0) continue;
+
+      for (let j = i + 1; j < targets.length; j++) {
+        const rectB = targets[j].getBoundingClientRect();
+        if (rectB.width === 0 && rectB.height === 0) continue;
+
+        const horizontalOverlap = Math.max(0, Math.min(rectA.right, rectB.right) - Math.max(rectA.left, rectB.left));
+        const verticalOverlap = Math.max(0, Math.min(rectA.bottom, rectB.bottom) - Math.max(rectA.top, rectB.top));
+
+        const horizontalGap = Math.max(rectA.left, rectB.left) - Math.min(rectA.right, rectB.right);
+        const verticalGap = Math.max(rectA.top, rectB.top) - Math.min(rectA.bottom, rectB.bottom);
+
+        if ((horizontalOverlap > 0 && verticalGap > 0 && verticalGap < 8) || 
+            (verticalOverlap > 0 && horizontalGap > 0 && horizontalGap < 8)) {
+          issues.push({
+            id: `cramped-${targets[i].tagName}-${Math.random()}`,
+            engine: 'readability',
+            ruleId: 'cramped-tap-targets',
+            severity: 'warning',
+            locator: createLocator(targets[i]),
+            message: `Interactive elements are positioned too closely (${targets[i].tagName.toLowerCase()} and ${targets[j].tagName.toLowerCase()} have less than 8px spacing).`,
+            evidence: targets[i].outerHTML.substring(0, 100),
+            metadata: {},
+            confidence: 'heuristic',
+            suggestedFix: 'Add spacing margins or increase container padding between neighboring buttons and anchor links.'
+          });
+          break;
+        }
+      }
+    }
+
+    return issues;
+  }
+};
+
+// --- 7. Clutter Score Rule ---
+export const ClutterScoreRule: AuditRule = {
+  id: 'clutter-score',
+  name: 'Visual Clutter Scanner',
+  category: 'readability',
+  severityDefault: 'info',
+  scoreImpact: 10,
+  async run(context: ScanContext): Promise<RawIssue[]> {
+    const doc = context.document;
+    const issues: RawIssue[] = [];
+
+    const iframes = doc.querySelectorAll('iframe').length;
+    const ads = doc.querySelectorAll('[id*="ad-"], [class*="ad-"], [id*="banner"], [class*="banner"]').length;
+    const links = doc.querySelectorAll('a[href]').length;
+    const paragraphs = doc.querySelectorAll('p').length;
+
+    if ((iframes > 5 || ads > 10) && paragraphs > 0 && (links / paragraphs) > 10) {
+      issues.push({
+        id: `clutter-${Math.random()}`,
+        engine: 'readability',
+        ruleId: 'clutter-score',
+        severity: 'info',
+        message: `High layout clutter level identified: page contains ${iframes} iframe segments, ${ads} structural ad selectors, and ${links} link tags.`,
+        metadata: { iframes, ads, links, paragraphs },
+        confidence: 'heuristic',
+        suggestedFix: 'Activate WebLens OS Layout Cleaner to hide floating items and suppress repetitive elements.'
+      });
+    }
+
+    return issues;
+  }
+};
+
+// --- 8. Intrusive Interstitial Rule ---
+export const IntrusiveInterstitialRule: AuditRule = {
+  id: 'intrusive-interstitial',
+  name: 'Intrusive Interstitial Scanner',
+  category: 'readability',
+  severityDefault: 'warning',
+  scoreImpact: 10,
+  async run(context: ScanContext): Promise<RawIssue[]> {
+    const doc = context.document;
+    const win = context.window;
+    const issues: RawIssue[] = [];
+    const overlays = doc.querySelectorAll('div, section');
+
+    overlays.forEach(el => {
+      const element = el as HTMLElement;
+      const style = win.getComputedStyle(element);
+
+      if (style.position === 'fixed' || style.position === 'absolute') {
+        const rect = element.getBoundingClientRect();
+        const viewportWidth = win.innerWidth;
+        const viewportHeight = win.innerHeight;
+        
+        const isCenteredX = (rect.left + rect.width / 2) > (viewportWidth * 0.3) && (rect.left + rect.width / 2) < (viewportWidth * 0.7);
+        const isCenteredY = (rect.top + rect.height / 2) > (viewportHeight * 0.3) && (rect.top + rect.height / 2) < (viewportHeight * 0.7);
+        const areaRatio = (viewportWidth * viewportHeight) > 0 ? (rect.width * rect.height) / (viewportWidth * viewportHeight) : 0;
+
+        if (isCenteredX && isCenteredY && areaRatio > 0.35 && rect.width > 280 && rect.height > 250) {
+          const content = element.textContent?.toLowerCase() || '';
+          const isConsentOrAd = content.includes('subscribe') || content.includes('newsletter') || content.includes('signup') || content.includes('advertisement') || content.includes('join');
+
+          if (isConsentOrAd) {
+            issues.push({
+              id: `interstitial-${Math.random()}`,
+              engine: 'readability',
+              ruleId: 'intrusive-interstitial',
+              severity: 'warning',
+              locator: createLocator(element),
+              message: `Intrusive overlay promo banner is active, blocking central webpage view (${Math.round(areaRatio * 100)}% coverage).`,
+              evidence: element.outerHTML.substring(0, 150),
+              metadata: { areaRatio },
+              confidence: 'heuristic',
+              suggestedFix: 'Show newsletters or advertisement prompts inline rather than as fixed viewport-blocking overlay modals.'
+            });
+          }
+        }
+      }
+    });
+
+    return issues;
+  }
+};

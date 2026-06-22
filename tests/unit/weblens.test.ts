@@ -136,6 +136,47 @@ describe('Report Compilation Exporter', () => {
     expect(md).toContain('example.com');
     expect(md).toContain('Alt tag missing');
   });
+
+  it('should compile valid CSV reports', () => {
+    const mockSession: any = {
+      id: 'session-123',
+      page: { domain: 'example.com', url: 'https://example.com', timestamp: Date.now() },
+      completedAt: Date.now(),
+      scores: { overall: 85, accessibility: 80, privacy: 90, ux: 85 },
+      issues: [
+        { id: '1', ruleId: 'alt-missing', category: 'accessibility', subcategory: 'Media', severity: 'warning', title: 'Alt tag missing', description: 'desc', locator: { primarySelector: 'img.logo' }, scoreImpact: 5, whyItMatters: 'why', remediation: 'remed' }
+      ]
+    };
+
+    const csv = ReportEngine.compileCSV(mockSession);
+    expect(csv).toContain('Rule ID,Severity,Title,Description,Selector path');
+    expect(csv).toContain('alt-missing,warning,Alt tag missing,desc,img.logo');
+  });
+
+  it('should compile Markdown reports with comparison deltas', () => {
+    const mockSessionA: any = {
+      id: 'session-a',
+      page: { domain: 'example.com', url: 'https://example.com', timestamp: 1000 },
+      completedAt: 1000,
+      scores: { overall: 80, accessibility: 80, privacy: 80, ux: 80 },
+      issues: [
+        { id: '1', ruleId: 'alt-missing', category: 'accessibility', subcategory: 'Media', severity: 'warning', title: 'Alt tag missing', description: 'desc', locator: { primarySelector: 'img.logo' }, scoreImpact: 5, whyItMatters: 'why', remediation: 'remed' }
+      ]
+    };
+
+    const mockSessionB: any = {
+      id: 'session-b',
+      page: { domain: 'example.com', url: 'https://example.com', timestamp: 2000 },
+      completedAt: 2000,
+      scores: { overall: 90, accessibility: 90, privacy: 95, ux: 85 },
+      issues: []
+    };
+
+    const report = HistoryEngine.compare(mockSessionA, mockSessionB);
+    const md = ReportEngine.compileMarkdown(mockSessionB, report);
+    expect(md).toContain('## Comparative Deltas (Relative to Previous Audit)');
+    expect(md).toContain('Resolved Issues (1)');
+  });
 });
 
 describe('Zod Schema Verification', () => {

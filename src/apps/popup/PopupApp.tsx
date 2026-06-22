@@ -63,7 +63,7 @@ export const PopupApp: React.FC = () => {
     };
 
     // If all toggles are disabled, disable the overall fixer flag
-    if (!nextState.darkMode && !nextState.focusMode && !nextState.hideSticky) {
+    if (!nextState.darkMode && !nextState.focusMode && !nextState.hideSticky && !nextState.readerMode) {
       nextState.enabled = false;
     }
 
@@ -214,6 +214,24 @@ export const PopupApp: React.FC = () => {
               type="checkbox"
               checked={settings.enabled && settings.hideSticky}
               onChange={() => handleToggle('hideSticky')}
+            />
+            <span className="slider"></span>
+          </label>
+        </div>
+
+        <div className="card flex items-center justify-between" style={{ padding: 10 }}>
+          <div className="flex items-center gap-2">
+            <span style={{ fontSize: 16 }}>📖</span>
+            <div>
+              <p style={{ fontWeight: 600, fontSize: 13 }}>Reader Mode</p>
+              <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Clean, distraction-free reading</p>
+            </div>
+          </div>
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={settings.enabled && !!settings.readerMode}
+              onChange={() => handleToggle('readerMode')}
             />
             <span className="slider"></span>
           </label>

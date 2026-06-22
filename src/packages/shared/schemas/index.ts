@@ -13,6 +13,13 @@ export const FixerStateSchema = z.object({
   focusMode: z.boolean(),
   darkMode: z.boolean(),
   hideSticky: z.boolean(),
+  readerMode: z.boolean().optional(),
+  readingWidth: z.enum(['narrow', 'medium', 'wide', 'full']).optional(),
+  paragraphSpacing: z.number().optional(),
+  headingEmphasis: z.boolean().optional(),
+  imageDimming: z.boolean().optional(),
+  highlightLinks: z.boolean().optional(),
+  readingRuler: z.boolean().optional(),
   typography: TypographyConfigSchema,
   lastUpdatedAt: z.number().optional()
 });
@@ -67,7 +74,36 @@ export const AuditIssueSchema = z.object({
   remediation: z.string(),
   locator: IssueLocatorSchema.optional(),
   scoreImpact: z.number(),
-  evidence: z.string().optional()
+  evidence: z.string().optional(),
+  confidence: z.enum(['confirmed', 'heuristic']).optional(),
+  suggestedFix: z.string().optional(),
+  quickFixPreviewSelector: z.string().optional()
+});
+
+export const PageInsightsSchema = z.object({
+  headingsCount: z.object({
+    h1: z.number(),
+    h2: z.number(),
+    h3: z.number(),
+    h4: z.number(),
+    h5: z.number(),
+    h6: z.number()
+  }),
+  imagesCount: z.object({ total: z.number(), missingAlt: z.number() }),
+  formsCount: z.object({ total: z.number(), unlabeled: z.number(), placeholderOnly: z.number() }),
+  linksCount: z.object({ total: z.number(), empty: z.number(), suspiciousPurpose: z.number() }),
+  resourceSummary: z.object({ total: z.number(), thirdParty: z.number(), firstParty: z.number() }),
+  trackersSummary: z.object({
+    analytics: z.number(),
+    advertising: z.number(),
+    social: z.number(),
+    utility: z.number(),
+    total: z.number()
+  }),
+  interstitialsDetected: z.number(),
+  pageLanguage: z.string().optional(),
+  iframeCount: z.number(),
+  mainContentFound: z.boolean()
 });
 
 export const DeductionRecordSchema = z.object({
@@ -99,13 +135,17 @@ export const ScoreBreakdownSchema = z.object({
 export const AuditSessionSchema = z.object({
   id: z.string().uuid(),
   schemaVersion: z.number().int(),
+  scanProfile: z.enum(['quick', 'full', 'accessibility', 'privacy', 'ux', 'developer', 'summary']).optional(),
   page: PageSnapshotSchema,
   startedAt: z.number(),
   completedAt: z.number(),
   scores: ScoreBreakdownSchema,
   issues: z.array(AuditIssueSchema),
   resources: z.array(ResourceSummarySchema),
+  insights: PageInsightsSchema.optional(),
   fixerState: FixerStateSchema,
+  userNotes: z.string().optional(),
+  isPinned: z.boolean().optional(),
   engineVersions: z.object({
     core: z.string(),
     rules: z.string()
@@ -127,7 +167,8 @@ export const StorageDumpSchema = z.object({
 // --- Command Payload Validators ---
 export const PayloadValidators = {
   RUN_AUDIT: z.object({
-    tabId: z.number().int().positive()
+    tabId: z.number().int().positive(),
+    scanProfile: z.enum(['quick', 'full', 'accessibility', 'privacy', 'ux', 'developer', 'summary']).optional()
   }),
   GET_AUDIT: z.object({
     tabId: z.number().int().positive()
@@ -160,6 +201,10 @@ export const PayloadValidators = {
   }),
   EXPORT_REPORT: z.object({
     id: z.string().uuid(),
-    format: z.enum(['md', 'json'])
+    format: z.enum(['md', 'json', 'csv'])
+  }),
+  SAVE_ANNOTATION: z.object({
+    id: z.string().uuid(),
+    notes: z.string()
   })
 };

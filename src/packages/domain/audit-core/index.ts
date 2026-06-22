@@ -8,21 +8,42 @@ import {
   EmptyButtonRule,
   HeadingOrderRule,
   ContrastRule,
-  FocusIndicatorRule
+  FocusIndicatorRule,
+  MissingDocLangRule,
+  MissingPageTitleRule,
+  DuplicateInteractiveLabelsRule,
+  MissingLandmarksRule,
+  AriaHiddenMisuseRule,
+  ImagesUsedAsButtonsRule,
+  MissingSkipLinkRule,
+  PlaceholderOnlyLabelingRule,
+  IframeTitleMissingRule,
+  BrokenTableSemanticsRule,
+  InvalidHeadingDensityRule,
+  TouchTargetSizeRule,
+  InaccessibleModalsRule
 } from '../accessibility-engine';
 
 import {
   HttpPageRule,
   MixedContentRule,
   KnownTrackerRule,
-  OverlayDarkPatternRule
+  OverlayDarkPatternRule,
+  InsecureFormsHttpRule,
+  UnsafeTargetBlankRule,
+  SuspiciousConsentButtonsRule,
+  FingerprintingHeuristicsRule
 } from '../privacy-engine';
 
 import {
   SmallBodyTextRule,
   BadLineHeightRule,
   StickyOverlayRule,
-  DenseContentRule
+  DenseContentRule,
+  ExcessiveLineLengthRule,
+  CrampedTapTargetsRule,
+  ClutterScoreRule,
+  IntrusiveInterstitialRule
 } from '../readability-engine';
 
 export class RuleRegistry {
@@ -35,8 +56,20 @@ export class RuleRegistry {
     this.rules.set(rule.id, rule);
   }
 
-  public async runAll(context: ScanContext): Promise<RawIssue[]> {
-    const promises = Array.from(this.rules.values()).map(async (rule) => {
+  public async runAll(context: ScanContext, scanProfile?: string): Promise<RawIssue[]> {
+    const activeRules = Array.from(this.rules.values()).filter(rule => {
+      if (!scanProfile || scanProfile === 'full' || scanProfile === 'developer') return true;
+      if (scanProfile === 'accessibility') return rule.category === 'accessibility';
+      if (scanProfile === 'privacy') return rule.category === 'privacy';
+      if (scanProfile === 'ux') return rule.category === 'readability' || rule.category === 'ux';
+      if (scanProfile === 'quick' || scanProfile === 'summary') {
+        const quickRules = ['missing-alt-text', 'missing-form-label', 'http-page', 'mixed-content', 'known-tracker', 'small-body-text'];
+        return quickRules.includes(rule.id);
+      }
+      return true;
+    });
+
+    const promises = activeRules.map(async (rule) => {
       try {
         return await rule.run(context);
       } catch (err) {
@@ -68,18 +101,39 @@ export function createDefaultRegistry(): RuleRegistry {
   registry.register(HeadingOrderRule);
   registry.register(ContrastRule);
   registry.register(FocusIndicatorRule);
+  registry.register(MissingDocLangRule);
+  registry.register(MissingPageTitleRule);
+  registry.register(DuplicateInteractiveLabelsRule);
+  registry.register(MissingLandmarksRule);
+  registry.register(AriaHiddenMisuseRule);
+  registry.register(ImagesUsedAsButtonsRule);
+  registry.register(MissingSkipLinkRule);
+  registry.register(PlaceholderOnlyLabelingRule);
+  registry.register(IframeTitleMissingRule);
+  registry.register(BrokenTableSemanticsRule);
+  registry.register(InvalidHeadingDensityRule);
+  registry.register(TouchTargetSizeRule);
+  registry.register(InaccessibleModalsRule);
 
   // 2. Privacy
   registry.register(HttpPageRule);
   registry.register(MixedContentRule);
   registry.register(KnownTrackerRule);
   registry.register(OverlayDarkPatternRule);
+  registry.register(InsecureFormsHttpRule);
+  registry.register(UnsafeTargetBlankRule);
+  registry.register(SuspiciousConsentButtonsRule);
+  registry.register(FingerprintingHeuristicsRule);
 
   // 3. Readability & UX
   registry.register(SmallBodyTextRule);
   registry.register(BadLineHeightRule);
   registry.register(StickyOverlayRule);
   registry.register(DenseContentRule);
+  registry.register(ExcessiveLineLengthRule);
+  registry.register(CrampedTapTargetsRule);
+  registry.register(ClutterScoreRule);
+  registry.register(IntrusiveInterstitialRule);
 
   return registry;
 }
@@ -174,10 +228,139 @@ export class IssueNormalizer {
       remediation: 'Limit the heights of fixed elements, or design layouts that hide overlay sections on scroll.'
     },
     'dense-content': {
-      title: 'Extremely dense paragraph groups missing spacing headers',
+      title: 'Extremely dense paragraph groups missing spacing headings',
       subcategory: 'Layout Density',
       whyItMatters: 'Large walls of text without headings or paragraphs segmentations make layouts hard to scan and digest.',
       remediation: 'Divide long articles into digestible parts separated by headings.'
+    },
+    // New Accessibility Rules
+    'missing-doc-lang': {
+      title: 'Document language attribute is missing',
+      subcategory: 'Structure',
+      whyItMatters: 'Screen readers use the HTML lang attribute to select the correct dictionary and pronunciation. Without it, speech output can be unreadable.',
+      remediation: 'Add a lang attribute to the <html> tag, e.g. <html lang="en">.'
+    },
+    'missing-page-title': {
+      title: 'Page title is missing or empty',
+      subcategory: 'Structure',
+      whyItMatters: 'The page title is the first element read by screen readers. It allows users to quickly identify the purpose of the loaded page.',
+      remediation: 'Insert a descriptive <title> tag inside the document <head>.'
+    },
+    'duplicate-interactive-labels': {
+      title: 'Duplicate interactive labels with different targets',
+      subcategory: 'Interactions',
+      whyItMatters: 'Repeated links or buttons with identical text (like multiple "Learn More" links) that go to different URLs create cognitive confusion for screen readers.',
+      remediation: 'Provide unique text descriptions or use aria-label to add contextual differentiation.'
+    },
+    'missing-landmarks': {
+      title: 'Missing HTML5 landmark regions',
+      subcategory: 'Structure',
+      whyItMatters: 'Landmark elements (<main>, <nav>, <header>, <footer>) help screen reader users jump directly to major page sections.',
+      remediation: 'Wrap page contents in semantic landmark tags instead of plain generic divs.'
+    },
+    'aria-hidden-misuse': {
+      title: 'Focusable element inside aria-hidden subtree',
+      subcategory: 'Structure',
+      whyItMatters: 'Interactive links or buttons wrapped in an aria-hidden="true" block are keyboard-focusable but remain hidden to screen readers, causing dead tabs.',
+      remediation: 'Remove aria-hidden="true" from containers holding interactive nodes, or mark focusable nodes with tabindex="-1".'
+    },
+    'images-used-as-buttons': {
+      title: 'Image used as button without label',
+      subcategory: 'Interactions',
+      whyItMatters: 'If an image serves as the sole content of a button, it must have an alt text or aria-label so screen readers can name the button\'s action.',
+      remediation: 'Define an alt attribute on the image, or add an aria-label to the button container.'
+    },
+    'missing-skip-link': {
+      title: 'Skip-to-content bypass link is missing',
+      subcategory: 'Interactions',
+      whyItMatters: 'Keyboard-only users must tab through header navigation menus on every page load if a skip link is not present.',
+      remediation: 'Provide a visible or keyboard-revealed "Skip to Content" skip-link at the very beginning of the page.'
+    },
+    'placeholder-only-labeling': {
+      title: 'Form input uses placeholder text as label',
+      subcategory: 'Forms & Controls',
+      whyItMatters: 'Placeholder text disappears when users type, leaving those with short-term memory challenges without a reference. It also has low default contrast.',
+      remediation: 'Use a proper companion <label> element or define an explicit aria-label.'
+    },
+    'iframe-title-missing': {
+      title: 'Missing title on iframe element',
+      subcategory: 'Structure',
+      whyItMatters: 'Screen readers need iframe titles to explain what third-party widgets or embedded video embeds are presenting.',
+      remediation: 'Add a descriptive title attribute to the iframe element, e.g. title="YouTube video player".'
+    },
+    'broken-table-semantics': {
+      title: 'Broken table layout structure',
+      subcategory: 'Structure',
+      whyItMatters: 'Data tables lacking proper column/row headers (<th>) cannot be navigated cell-by-cell dynamically by screen readers.',
+      remediation: 'Format headers using <th> elements and assign scope="col" or scope="row" attributes.'
+    },
+    'invalid-heading-density': {
+      title: 'Excessive or duplicate H1 headers',
+      subcategory: 'Structure',
+      whyItMatters: 'Using more than three H1 headers dilutes the primary visual focus and structure of the document.',
+      remediation: 'Maintain a single primary H1 heading for the page title, using H2 and H3 for subtopics.'
+    },
+    'touch-target-size': {
+      title: 'Interactive control too small for mobile touch',
+      subcategory: 'Interactions',
+      whyItMatters: 'Touch targets smaller than 24px are extremely difficult for mobile visitors to click accurately, triggering accidental taps.',
+      remediation: 'Increase padding or size of buttons and link blocks to meet the minimum size requirement.'
+    },
+    'inaccessible-modals': {
+      title: 'Dialog modal lacks accessibility controls',
+      subcategory: 'Interactions',
+      whyItMatters: 'Overlay dialog panels must capture keyboard focus so that users cannot accidentally tab to hidden background elements.',
+      remediation: 'Assign role="dialog" and aria-modal="true" parameters, and trap keyboard tab actions within the modal scope.'
+    },
+    // New Privacy Rules
+    'insecure-forms-http': {
+      title: 'Insecure input fields on non-HTTPS page',
+      subcategory: 'Connection Safety',
+      whyItMatters: 'Entering credentials or personal information on forms loaded over plain HTTP connections exposes data to packet sniffers.',
+      remediation: 'Ensure the page is served entirely over secure HTTPS before collecting user input.'
+    },
+    'unsafe-target-blank': {
+      title: 'Link opens target blank without rel safety attributes',
+      subcategory: 'Connection Safety',
+      whyItMatters: 'Using target="_blank" without rel="noopener" allows the newly opened tab to access window.opener, introducing tabnabbing risks.',
+      remediation: 'Add rel="noopener" or rel="noreferrer" attributes to all external anchor links.'
+    },
+    'suspicious-consent-buttons': {
+      title: 'Cookie banner lacks equivalent reject button',
+      subcategory: 'Tracking & Privacy',
+      whyItMatters: 'Banners that make "Reject All" hidden or visually faint manipulate users into accepting cookies (dark patterns).',
+      remediation: 'Provide visually equivalent options for "Accept All" and "Reject All" choices at the same hierarchical tier.'
+    },
+    'fingerprinting-heuristics': {
+      title: 'Active browser fingerprinting trackers detected',
+      subcategory: 'Tracking & Privacy',
+      whyItMatters: 'Beacons that dynamically query system canvas context, system font availability, or audio layers build unique device profiles to track users.',
+      remediation: 'Remove script calls to known fingerprinting networks.'
+    },
+    // New UX Rules
+    'excessive-line-length': {
+      title: 'Paragraph character line length is too long',
+      subcategory: 'Typography',
+      whyItMatters: 'Paragraphs wider than 80 characters require significant head movement to read, making scanning difficult.',
+      remediation: 'Apply CSS max-width rules (e.g. max-width: 65ch) to main content containers.'
+    },
+    'cramped-tap-targets': {
+      title: 'Cramped or tightly clustered links',
+      subcategory: 'Interactions',
+      whyItMatters: 'Interactive links placed too closely together cause target-clicking mistakes.',
+      remediation: 'Add extra spacing or padding to interactive elements.'
+    },
+    'clutter-score': {
+      title: 'High visual layout clutter and density',
+      subcategory: 'Layout Density',
+      whyItMatters: 'Pages containing high densities of ad boxes, banner scripts, and popups cause significant cognitive fatigue.',
+      remediation: 'Clean up layout blocks and remove non-content advertising elements.'
+    },
+    'intrusive-interstitial': {
+      title: 'Intrusive overlay blocking page access',
+      subcategory: 'UX Obstruction',
+      whyItMatters: 'Large popup frames blocking content immediately upon page load frustrate visitors and obstruct user goals.',
+      remediation: 'Avoid showing interstitial prompts until a user has scrolled or spent time on content.'
     }
   };
 
@@ -205,7 +388,10 @@ export class IssueNormalizer {
       remediation: details.remediation,
       locator: raw.locator,
       scoreImpact,
-      evidence: raw.evidence
+      evidence: raw.evidence,
+      confidence: raw.confidence || 'confirmed',
+      suggestedFix: raw.suggestedFix || details.remediation,
+      quickFixPreviewSelector: raw.quickFixPreviewSelector
     };
   }
 }

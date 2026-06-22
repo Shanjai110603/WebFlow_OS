@@ -9,6 +9,13 @@ export const DEFAULT_FIXER_STATE = {
   focusMode: false,
   darkMode: false,
   hideSticky: false,
+  readerMode: false,
+  readingWidth: 'medium' as const,
+  paragraphSpacing: 1.0,
+  headingEmphasis: false,
+  imageDimming: false,
+  highlightLinks: false,
+  readingRuler: false,
   typography: {
     fontSize: 100,
     lineHeight: 1.5,

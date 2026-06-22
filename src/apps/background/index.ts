@@ -56,12 +56,13 @@ async function routeCommand(message: any, sender: chrome.runtime.MessageSender):
   switch (type) {
     case 'RUN_AUDIT': {
       const tabId = payload.tabId;
+      const scanProfile = payload.scanProfile || 'full';
       
       // 1. Programmatically inject content script if not loaded
       await ensureContentScriptInjected(tabId);
 
       // 2. Instruct content script to run rules audit in native page layout environment
-      const scrapeRes = await sendToTabWithTimeout(tabId, { type: 'EXECUTE_SCRAPE' }, 6000);
+      const scrapeRes = await sendToTabWithTimeout(tabId, { type: 'EXECUTE_SCRAPE', payload: { scanProfile } }, 6000);
       if (!scrapeRes.success) {
         return scrapeRes;
       }
@@ -74,7 +75,8 @@ async function routeCommand(message: any, sender: chrome.runtime.MessageSender):
         processedResources,
         trackerDomainsCount,
         isMixedContent,
-        viewport
+        viewport,
+        insights
       } = scrapeRes.data;
 
       // 3. Normalize raw issues
@@ -93,13 +95,16 @@ async function routeCommand(message: any, sender: chrome.runtime.MessageSender):
       const session: AuditSession = {
         id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
         schemaVersion: 1,
+        scanProfile,
         page: { url, domain, title, timestamp: Date.now() },
         startedAt: Date.now() - 200, // Approximate offset
         completedAt: Date.now(),
         scores,
         issues: normalizedIssues,
         resources: processedResources,
+        insights,
         fixerState,
+        isPinned: false,
         engineVersions: { core: '1.0.0', rules: '1.0.0' },
         metadata: {
           userAgent: sender.tab?.id ? 'WebLens OS Content Scraper' : navigator.userAgent,
@@ -204,11 +209,25 @@ async function routeCommand(message: any, sender: chrome.runtime.MessageSender):
         };
       }
 
-      const output = payload.format === 'json'
-        ? ReportEngine.compileJSON(session)
-        : ReportEngine.compileMarkdown(session);
+      let output: string;
+      if (payload.format === 'json') {
+        output = ReportEngine.compileJSON(session);
+      } else if (payload.format === 'csv') {
+        output = ReportEngine.compileCSV(session);
+      } else {
+        const previousSession = dump.history
+          .filter(s => s.page.domain === session.page.domain && s.completedAt < session.completedAt)
+          .sort((a, b) => b.completedAt - a.completedAt)[0];
+        const comparison = previousSession ? HistoryEngine.compare(previousSession, session) : undefined;
+        output = ReportEngine.compileMarkdown(session, comparison);
+      }
 
       return { success: true, data: output };
+    }
+
+    case 'SAVE_ANNOTATION': {
+      await StorageClient.saveAnnotation(payload.id, payload.notes);
+      return { success: true, data: undefined };
     }
 
     default:

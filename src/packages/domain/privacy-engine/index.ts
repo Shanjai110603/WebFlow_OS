@@ -158,3 +158,157 @@ export const OverlayDarkPatternRule: AuditRule = {
     return issues;
   }
 };
+
+// --- 5. Insecure Forms HTTP Rule ---
+export const InsecureFormsHttpRule: AuditRule = {
+  id: 'insecure-forms-http',
+  name: 'Insecure Input Fields Auditor',
+  category: 'privacy',
+  severityDefault: 'critical',
+  scoreImpact: 15,
+  async run(context: ScanContext): Promise<RawIssue[]> {
+    const win = context.window;
+    const doc = context.document;
+    const issues: RawIssue[] = [];
+
+    if (win.location.protocol === 'http:') {
+      const sensitiveInputs = doc.querySelectorAll('input[type="password"], input[type="email"], input[type="tel"], input[name*="card"], input[name*="pass"]');
+      sensitiveInputs.forEach(input => {
+        const el = input as HTMLElement;
+        issues.push({
+          id: `insecure-input-${Math.random()}`,
+          engine: 'privacy',
+          ruleId: 'insecure-forms-http',
+          severity: 'critical',
+          locator: createLocator(el),
+          message: `Sensitive input field <${el.tagName.toLowerCase()}> is served over insecure HTTP connection, risking credentials capture.`,
+          evidence: el.outerHTML.substring(0, 150),
+          metadata: {},
+          confidence: 'confirmed',
+          suggestedFix: 'Configure secure SSL certificates (HTTPS) for the hosting webserver and enforce secure redirects.'
+        });
+      });
+    }
+
+    return issues;
+  }
+};
+
+// --- 6. Unsafe Target Blank Rule ---
+export const UnsafeTargetBlankRule: AuditRule = {
+  id: 'unsafe-target-blank',
+  name: 'Tabnabbing Security Auditor',
+  category: 'privacy',
+  severityDefault: 'warning',
+  scoreImpact: 5,
+  async run(context: ScanContext): Promise<RawIssue[]> {
+    const win = context.window;
+    const doc = context.document;
+    const issues: RawIssue[] = [];
+    const links = doc.querySelectorAll('a[target="_blank"]');
+
+    links.forEach(link => {
+      const el = link as HTMLAnchorElement;
+      const rel = el.getAttribute('rel') || '';
+      const hasSafety = rel.includes('noopener') || rel.includes('noreferrer');
+      const href = el.getAttribute('href') || '';
+      
+      if (!hasSafety && href && !href.startsWith('#') && !href.startsWith('/') && !href.includes(win.location.hostname)) {
+        issues.push({
+          id: `unsafe-target-${Math.random()}`,
+          engine: 'privacy',
+          ruleId: 'unsafe-target-blank',
+          severity: 'warning',
+          locator: createLocator(el),
+          message: `Link opens in a new tab (target="_blank") without safety rel="noopener" or rel="noreferrer" configuration.`,
+          evidence: el.outerHTML.substring(0, 150),
+          metadata: { href },
+          confidence: 'confirmed',
+          suggestedFix: 'Add rel="noopener" or rel="noreferrer" to the anchor tag, e.g. <a href="..." target="_blank" rel="noopener">.'
+        });
+      }
+    });
+
+    return issues;
+  }
+};
+
+// --- 7. Suspicious Consent Buttons Rule ---
+export const SuspiciousConsentButtonsRule: AuditRule = {
+  id: 'suspicious-consent-buttons',
+  name: 'Consent Button Dark Patterns Auditor',
+  category: 'privacy',
+  severityDefault: 'warning',
+  scoreImpact: 10,
+  async run(context: ScanContext): Promise<RawIssue[]> {
+    const doc = context.document;
+    const issues: RawIssue[] = [];
+    
+    const banners = doc.querySelectorAll('div, section');
+    banners.forEach(b => {
+      const banner = b as HTMLElement;
+      const content = banner.textContent?.toLowerCase() || '';
+      if (content.includes('cookie') && (content.includes('consent') || content.includes('agree') || content.includes('accept'))) {
+        const buttons = Array.from(banner.querySelectorAll('button, [role="button"]')) as HTMLElement[];
+        if (buttons.length > 0) {
+          const hasAccept = buttons.some(btn => {
+            const text = btn.textContent?.toLowerCase() || '';
+            return text.includes('accept') || text.includes('agree') || text.includes('allow');
+          });
+          const hasReject = buttons.some(btn => {
+            const text = btn.textContent?.toLowerCase() || '';
+            return text.includes('reject') || text.includes('decline') || text.includes('deny') || text.includes('manage') || text.includes('settings');
+          });
+
+          if (hasAccept && !hasReject) {
+            issues.push({
+              id: `dark-consent-${Math.random()}`,
+              engine: 'privacy',
+              ruleId: 'suspicious-consent-buttons',
+              severity: 'warning',
+              locator: createLocator(banner),
+              message: 'Cookie consent dialog offers prominent "Accept" choices without an immediate matching "Reject" or "Manage" options.',
+              evidence: banner.outerHTML.substring(0, 200),
+              metadata: {},
+              confidence: 'heuristic',
+              suggestedFix: 'Include clear, prominent "Reject All" or "Manage Preferences" links next to the main "Accept" button.'
+            });
+          }
+        }
+      }
+    });
+
+    return issues;
+  }
+};
+
+// --- 8. Fingerprinting Heuristics Rule ---
+export const FingerprintingHeuristicsRule: AuditRule = {
+  id: 'fingerprinting-heuristics',
+  name: 'Device Fingerprinting Auditor',
+  category: 'privacy',
+  severityDefault: 'warning',
+  scoreImpact: 10,
+  async run(context: ScanContext): Promise<RawIssue[]> {
+    const issues: RawIssue[] = [];
+    
+    context.resources.forEach(res => {
+      const url = res.url.toLowerCase();
+      if (url.includes('fingerprint') || url.includes('device-id') || url.includes('client-id') || url.includes('canvas-id')) {
+        issues.push({
+          id: `fingerprint-${res.domain}-${Math.random()}`,
+          engine: 'privacy',
+          ruleId: 'fingerprinting-heuristics',
+          severity: 'warning',
+          message: `Third-party resource matching fingerprinting signature detected: ${res.domain}`,
+          evidence: res.url.substring(0, 100),
+          metadata: { domain: res.domain },
+          confidence: 'heuristic',
+          suggestedFix: 'Deactivate fingerprinting analytics scripts that build client hardware profiles without consent.'
+        });
+      }
+    });
+
+    return issues;
+  }
+};

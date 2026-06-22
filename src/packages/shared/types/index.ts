@@ -8,6 +8,9 @@ export interface RawIssue {
   message: string;
   evidence?: string;
   metadata: Record<string, unknown>;
+  confidence?: 'confirmed' | 'heuristic';
+  suggestedFix?: string;
+  quickFixPreviewSelector?: string;
 }
 
 export interface IssueLocator {
@@ -35,19 +38,41 @@ export interface AuditIssue {
   locator?: IssueLocator;
   scoreImpact: number;
   evidence?: string;
+  confidence?: 'confirmed' | 'heuristic';
+  suggestedFix?: string;
+  quickFixPreviewSelector?: string;
+}
+
+export type ScanProfileType = 'quick' | 'full' | 'accessibility' | 'privacy' | 'ux' | 'developer' | 'summary';
+
+export interface PageInsights {
+  headingsCount: Record<'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6', number>;
+  imagesCount: { total: number; missingAlt: number };
+  formsCount: { total: number; unlabeled: number; placeholderOnly: number };
+  linksCount: { total: number; empty: number; suspiciousPurpose: number };
+  resourceSummary: { total: number; thirdParty: number; firstParty: number };
+  trackersSummary: { analytics: number; advertising: number; social: number; utility: number; total: number };
+  interstitialsDetected: number;
+  pageLanguage?: string;
+  iframeCount: number;
+  mainContentFound: boolean;
 }
 
 // --- C. Audit Session / Saved Report Model ---
 export interface AuditSession {
   id: string; // UUID v4
   schemaVersion: number; // Verification version (1 for current DB)
+  scanProfile?: ScanProfileType;
   page: PageSnapshot;
   startedAt: number;
   completedAt: number;
   scores: ScoreBreakdown;
   issues: AuditIssue[];
   resources: ResourceSummary[];
+  insights?: PageInsights;
   fixerState: FixerState;
+  userNotes?: string;
+  isPinned?: boolean;
   engineVersions: {
     core: string;
     rules: string;
@@ -82,6 +107,13 @@ export interface FixerState {
   focusMode: boolean;
   darkMode: boolean;
   hideSticky: boolean;
+  readerMode?: boolean;
+  readingWidth?: 'narrow' | 'medium' | 'wide' | 'full';
+  paragraphSpacing?: number;
+  headingEmphasis?: boolean;
+  imageDimming?: boolean;
+  highlightLinks?: boolean;
+  readingRuler?: boolean;
   typography: TypographyConfig;
   lastUpdatedAt?: number;
 }
@@ -138,7 +170,9 @@ export interface ScoreDelta {
 }
 
 export interface ComparisonReport {
+  id?: string;
   domain: string;
+  comparedAt?: number;
   sessionA: { id: string; timestamp: number };
   sessionB: { id: string; timestamp: number };
   scoreDeltas: {
@@ -150,6 +184,11 @@ export interface ComparisonReport {
   resolvedIssues: AuditIssue[];
   newIssues: AuditIssue[];
   persistentIssues: AuditIssue[];
+  insightsDelta?: {
+    trackersDifference: number;
+    unlabeledFormsDifference: number;
+  };
+  matchConfidence?: 'strong' | 'weak';
 }
 
 export interface IssueMatchResult {
@@ -221,7 +260,7 @@ export type CommandResponse<T> =
 
 export interface CommandMap {
   RUN_AUDIT: {
-    payload: { tabId: number };
+    payload: { tabId: number; scanProfile?: ScanProfileType };
     response: AuditSession;
   };
   GET_AUDIT: {
@@ -261,7 +300,11 @@ export interface CommandMap {
     response: ComparisonReport;
   };
   EXPORT_REPORT: {
-    payload: { id: string; format: 'md' | 'json' };
+    payload: { id: string; format: 'md' | 'json' | 'csv' };
     response: string;
+  };
+  SAVE_ANNOTATION: {
+    payload: { id: string; notes: string };
+    response: void;
   };
 }

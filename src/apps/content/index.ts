@@ -3,9 +3,12 @@ import { HighlightingEngine } from '@domain/highlighting-engine';
 import { createDefaultRegistry } from '@domain/audit-core';
 import { TRACKER_RULES } from '@shared/constants';
 import { FixerState, ResourceSummary } from '@shared/types';
+import { InsightsCompiler } from '@domain/comfort-insights/insights-compiler';
+import { ReaderModeController } from '@domain/comfort-insights/reader-mode';
 
 const fixer = new FixerController(document, window);
 const ruleRegistry = createDefaultRegistry();
+const readerController = new ReaderModeController(document);
 
 function processPageResources(
   pageUrl: string,
@@ -79,6 +82,9 @@ chrome.runtime.sendMessage({ type: 'GET_FIXER_SETTINGS', payload: { tabId: 0 } }
     activeSettings = res.data;
     if (activeSettings?.enabled) {
       fixer.apply(activeSettings);
+      if (activeSettings.readerMode) {
+        readerController.apply(activeSettings);
+      }
     }
   }
 });
@@ -117,7 +123,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
             resources: processedResources
           };
 
-          const rawIssues = await ruleRegistry.runAll(scanContext);
+          const scanProfile = message.payload?.scanProfile;
+          const rawIssues = await ruleRegistry.runAll(scanContext, scanProfile);
+          const insights = InsightsCompiler.compile(document, window, processedResources);
 
           sendResponse({
             success: true,
@@ -129,7 +137,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
               processedResources,
               trackerDomainsCount: trackerDomains.size,
               isMixedContent,
-              viewport: { width: window.innerWidth, height: window.innerHeight }
+              viewport: { width: window.innerWidth, height: window.innerHeight },
+              insights
             }
           });
         } catch (err: any) {
@@ -146,8 +155,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         activeSettings = message.settings;
         if (activeSettings) {
           fixer.apply(activeSettings);
+          if (activeSettings.readerMode) {
+            readerController.apply(activeSettings);
+          } else {
+            readerController.rollback();
+          }
         } else {
           fixer.rollback();
+          readerController.rollback();
         }
         sendResponse({ success: true });
       } catch (err: any) {

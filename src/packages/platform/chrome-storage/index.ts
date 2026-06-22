@@ -15,9 +15,13 @@ export class StorageClient {
         try {
           const parsed = StorageDumpSchema.safeParse(result);
           if (parsed.success) {
+            const mappedHistory = parsed.data.history.map(s => ({
+              ...s,
+              isPinned: pinnedList.includes(s.id)
+            }));
             resolve({
               preferences: parsed.data.preferences,
-              history: parsed.data.history,
+              history: mappedHistory,
               pinned: pinnedList
             });
           } else {
@@ -39,7 +43,9 @@ export class StorageClient {
             for (const session of rawHistory) {
               const sessionParse = AuditSessionSchema.safeParse(session);
               if (sessionParse.success) {
-                cleanHistory.push(sessionParse.data);
+                const s = sessionParse.data;
+                s.isPinned = pinnedList.includes(s.id);
+                cleanHistory.push(s);
               }
             }
 
@@ -153,6 +159,26 @@ export class StorageClient {
       chrome.storage.local.set({ pinned }, () => {
         if (chrome.runtime.lastError) {
           reject(new StorageError(chrome.runtime.lastError.message || 'Pinning update failed'));
+        } else {
+          resolve();
+        }
+      });
+    });
+  }
+
+  public static async saveAnnotation(id: string, notes: string): Promise<void> {
+    const dump = await StorageClient.getDump();
+    const history = dump.history.map(s => {
+      if (s.id === id) {
+        return { ...s, userNotes: notes };
+      }
+      return s;
+    });
+
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.set({ history }, () => {
+        if (chrome.runtime.lastError) {
+          reject(new StorageError(chrome.runtime.lastError.message || 'Annotation save failed'));
         } else {
           resolve();
         }
