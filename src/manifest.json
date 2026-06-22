@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "WebLens OS",
+  "version": "1.0.0",
+  "description": "Local-first page fixer, accessibility checker, and privacy/trust auditing workspace.",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "sidePanel",
+    "scripting"
+  ],
+  "action": {
+    "default_popup": "apps/popup/index.html",
+    "default_title": "WebLens OS Status"
+  },
+  "side_panel": {
+    "default_path": "apps/sidepanel/index.html"
+  },
+  "background": {
+    "service_worker": "apps/background/index.js",
+    "type": "module"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self';"
+  }
+}
