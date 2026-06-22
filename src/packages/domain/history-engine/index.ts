@@ -14,7 +14,9 @@ export class HistoryEngine {
       overall: HistoryEngine.calculateDelta(sessionA.scores.overall, sessionB.scores.overall),
       accessibility: HistoryEngine.calculateDelta(sessionA.scores.accessibility, sessionB.scores.accessibility),
       privacy: HistoryEngine.calculateDelta(sessionA.scores.privacy, sessionB.scores.privacy),
-      ux: HistoryEngine.calculateDelta(sessionA.scores.ux, sessionB.scores.ux)
+      ux: HistoryEngine.calculateDelta(sessionA.scores.ux, sessionB.scores.ux),
+      security: HistoryEngine.calculateDelta(sessionA.scores.security, sessionB.scores.security),
+      seo: HistoryEngine.calculateDelta(sessionA.scores.seo, sessionB.scores.seo)
     };
 
     const resolvedIssues: AuditIssue[] = [];

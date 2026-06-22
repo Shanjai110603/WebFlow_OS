@@ -1,7 +1,7 @@
 // --- A. Raw Scan Model ---
 export interface RawIssue {
   id: string; // Hash of ruleId + selector/evidence
-  engine: 'accessibility' | 'privacy' | 'readability' | 'ux';
+  engine: 'accessibility' | 'privacy' | 'readability' | 'ux' | 'security' | 'seo';
   ruleId: string;
   severity: 'critical' | 'warning' | 'info';
   locator?: IssueLocator;
@@ -28,7 +28,7 @@ export interface IssueLocator {
 export interface AuditIssue {
   id: string;
   ruleId: string;
-  category: 'accessibility' | 'privacy' | 'ux' | 'readability';
+  category: 'accessibility' | 'privacy' | 'ux' | 'readability' | 'security' | 'seo';
   subcategory: string;
   severity: 'critical' | 'warning' | 'info';
   title: string;
@@ -43,7 +43,7 @@ export interface AuditIssue {
   quickFixPreviewSelector?: string;
 }
 
-export type ScanProfileType = 'quick' | 'full' | 'accessibility' | 'privacy' | 'ux' | 'developer' | 'summary';
+export type ScanProfileType = 'quick' | 'full' | 'accessibility' | 'privacy' | 'ux' | 'security' | 'seo' | 'developer' | 'summary';
 
 export interface PageInsights {
   headingsCount: Record<'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6', number>;
@@ -56,6 +56,18 @@ export interface PageInsights {
   pageLanguage?: string;
   iframeCount: number;
   mainContentFound: boolean;
+  seoMetadata?: {
+    title?: string;
+    titleLength: number;
+    description?: string;
+    descriptionLength: number;
+    canonical?: string;
+    robots?: string;
+    charset?: string;
+    hasViewport: boolean;
+    structuredDataCount: number;
+    structuredDataTypes: string[];
+  };
 }
 
 // --- C. Audit Session / Saved Report Model ---
@@ -144,7 +156,7 @@ export interface DeductionRecord {
 }
 
 export interface ScoreExplanation {
-  category: 'accessibility' | 'privacy' | 'ux';
+  category: 'accessibility' | 'privacy' | 'ux' | 'security' | 'seo';
   startingScore: number;
   deductions: DeductionRecord[];
   finalScore: number;
@@ -155,10 +167,14 @@ export interface ScoreBreakdown {
   accessibility: number;
   privacy: number;
   ux: number;
+  security: number;
+  seo: number;
   explanations: {
     accessibility: ScoreExplanation;
     privacy: ScoreExplanation;
     ux: ScoreExplanation;
+    security: ScoreExplanation;
+    seo: ScoreExplanation;
   };
 }
 
@@ -180,6 +196,8 @@ export interface ComparisonReport {
     accessibility: ScoreDelta;
     privacy: ScoreDelta;
     ux: ScoreDelta;
+    security: ScoreDelta;
+    seo: ScoreDelta;
   };
   resolvedIssues: AuditIssue[];
   newIssues: AuditIssue[];
@@ -208,7 +226,7 @@ export interface ErrorPayload {
 
 // --- I. Missing Platform & Domain Types ---
 export interface CategoryPolicy {
-  category: 'accessibility' | 'privacy' | 'ux';
+  category: 'accessibility' | 'privacy' | 'ux' | 'security' | 'seo';
   startingScore: number;
   maxDeductionCap: number;
   deductionWeights: Record<string, number>;
@@ -223,7 +241,7 @@ export interface ScanContext {
 export interface AuditRule {
   id: string;
   name: string;
-  category: 'accessibility' | 'privacy' | 'readability' | 'ux';
+  category: 'accessibility' | 'privacy' | 'readability' | 'ux' | 'security' | 'seo';
   severityDefault: 'critical' | 'warning' | 'info';
   scoreImpact: number;
   run(context: ScanContext): Promise<RawIssue[]>;

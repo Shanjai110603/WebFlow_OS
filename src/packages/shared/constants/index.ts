@@ -24,7 +24,7 @@ export const DEFAULT_FIXER_STATE = {
   }
 };
 
-export const SCORING_POLICIES: Record<'accessibility' | 'privacy' | 'ux', CategoryPolicy> = {
+export const SCORING_POLICIES: Record<'accessibility' | 'privacy' | 'ux' | 'security' | 'seo', CategoryPolicy> = {
   accessibility: {
     category: 'accessibility',
     startingScore: 100,
@@ -58,6 +58,39 @@ export const SCORING_POLICIES: Record<'accessibility' | 'privacy' | 'ux', Catego
       'bad-line-height': 10,
       'sticky-overlay': 10,
       'dense-content': 10
+    }
+  },
+  security: {
+    category: 'security',
+    startingScore: 100,
+    maxDeductionCap: 60, // Floor limit of 40
+    deductionWeights: {
+      'insecure-transport-http': 30,
+      'mixed-content-resource': 15,
+      'unsafe-target-blank': 10,
+      'unsafe-javascript-links': 10,
+      'insecure-form-action': 25,
+      'insecure-password-form': 30,
+      'risky-inline-event-handlers': 5,
+      'deceptive-interaction-blocker': 15
+    }
+  },
+  seo: {
+    category: 'seo',
+    startingScore: 100,
+    maxDeductionCap: 60, // Floor limit of 40
+    deductionWeights: {
+      'missing-seo-title': 20,
+      'seo-title-length': 10,
+      'missing-seo-description': 15,
+      'seo-description-length': 10,
+      'missing-canonical-tag': 10,
+      'missing-viewport-meta': 10,
+      'missing-h1': 20,
+      'multiple-h1s': 10,
+      'broken-heading-hierarchy': 10,
+      'empty-anchor-seo': 10,
+      'missing-structured-data': 10
     }
   }
 };

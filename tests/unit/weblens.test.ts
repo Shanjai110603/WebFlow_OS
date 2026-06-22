@@ -8,6 +8,9 @@ import { ScoringEngine } from '../../src/packages/domain/scoring-engine';
 import { HistoryEngine } from '../../src/packages/domain/history-engine';
 import { ReportEngine } from '../../src/packages/domain/report-engine';
 import { FixerStateSchema } from '../../src/packages/shared/schemas';
+import { SecurityEngine } from '../../src/packages/domain/security-engine';
+import { SeoEngine } from '../../src/packages/domain/seo-engine';
+import { JSDOM } from 'jsdom';
 
 describe('WCAG Color Contrast Calculations', () => {
   it('should parse rgb color strings correctly', () => {
@@ -98,7 +101,7 @@ describe('History Match & Compare Engine', () => {
       id: 'session-a',
       page: { domain: 'example.com' },
       completedAt: 1000,
-      scores: { overall: 80, accessibility: 80, privacy: 80, ux: 80 },
+      scores: { overall: 80, accessibility: 80, privacy: 80, ux: 80, security: 80, seo: 80 },
       issues: [
         { id: '1', category: 'accessibility', subcategory: 'Media', severity: 'warning', title: 'Alt tag missing', description: 'desc', locator: { primarySelector: 'img.logo' }, scoreImpact: 5 }
       ]
@@ -108,7 +111,7 @@ describe('History Match & Compare Engine', () => {
       id: 'session-b',
       page: { domain: 'example.com' },
       completedAt: 2000,
-      scores: { overall: 90, accessibility: 90, privacy: 95, ux: 85 },
+      scores: { overall: 90, accessibility: 90, privacy: 95, ux: 85, security: 90, seo: 90 },
       issues: [] // Issue is now resolved
     };
 
@@ -125,7 +128,7 @@ describe('Report Compilation Exporter', () => {
       id: 'session-123',
       page: { domain: 'example.com', url: 'https://example.com', timestamp: Date.now() },
       completedAt: Date.now(),
-      scores: { overall: 85, accessibility: 80, privacy: 90, ux: 85 },
+      scores: { overall: 85, accessibility: 80, privacy: 90, ux: 85, security: 85, seo: 85 },
       issues: [
         { id: '1', category: 'accessibility', subcategory: 'Media', severity: 'warning', title: 'Alt tag missing', description: 'desc', locator: { primarySelector: 'img.logo' }, scoreImpact: 5, whyItMatters: 'why', remediation: 'remed' }
       ]
@@ -142,7 +145,7 @@ describe('Report Compilation Exporter', () => {
       id: 'session-123',
       page: { domain: 'example.com', url: 'https://example.com', timestamp: Date.now() },
       completedAt: Date.now(),
-      scores: { overall: 85, accessibility: 80, privacy: 90, ux: 85 },
+      scores: { overall: 85, accessibility: 80, privacy: 90, ux: 85, security: 85, seo: 85 },
       issues: [
         { id: '1', ruleId: 'alt-missing', category: 'accessibility', subcategory: 'Media', severity: 'warning', title: 'Alt tag missing', description: 'desc', locator: { primarySelector: 'img.logo' }, scoreImpact: 5, whyItMatters: 'why', remediation: 'remed' }
       ]
@@ -158,7 +161,7 @@ describe('Report Compilation Exporter', () => {
       id: 'session-a',
       page: { domain: 'example.com', url: 'https://example.com', timestamp: 1000 },
       completedAt: 1000,
-      scores: { overall: 80, accessibility: 80, privacy: 80, ux: 80 },
+      scores: { overall: 80, accessibility: 80, privacy: 80, ux: 80, security: 80, seo: 80 },
       issues: [
         { id: '1', ruleId: 'alt-missing', category: 'accessibility', subcategory: 'Media', severity: 'warning', title: 'Alt tag missing', description: 'desc', locator: { primarySelector: 'img.logo' }, scoreImpact: 5, whyItMatters: 'why', remediation: 'remed' }
       ]
@@ -168,7 +171,7 @@ describe('Report Compilation Exporter', () => {
       id: 'session-b',
       page: { domain: 'example.com', url: 'https://example.com', timestamp: 2000 },
       completedAt: 2000,
-      scores: { overall: 90, accessibility: 90, privacy: 95, ux: 85 },
+      scores: { overall: 90, accessibility: 90, privacy: 95, ux: 85, security: 90, seo: 90 },
       issues: []
     };
 
@@ -207,7 +210,7 @@ describe('Zod Schema Verification', () => {
       darkMode: true,
       hideSticky: false,
       typography: {
-        fontSize: 350, // Max size limit is 200
+        fontSize: 350,
         lineHeight: 1.6,
         letterSpacing: 0.05,
         fontFamily: 'dyslexic'
@@ -216,5 +219,87 @@ describe('Zod Schema Verification', () => {
 
     const result = FixerStateSchema.safeParse(invalid);
     expect(result.success).toBe(false);
+  });
+});
+
+describe('Security Audit Engine', () => {
+  it('should detect insecure HTTP connection', async () => {
+    const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', { url: 'http://example.com/' });
+    const context = {
+      window: dom.window as any,
+      document: dom.window.document,
+      resources: []
+    };
+    const issues = await SecurityEngine.run(context);
+    expect(issues.some(i => i.ruleId === 'insecure-transport-http')).toBe(true);
+  });
+
+  it('should detect mixed content resources', async () => {
+    const dom = new JSDOM('<!DOCTYPE html><html><body><img src="http://example.com/image.png"></body></html>', { url: 'https://example.com/' });
+    const context = {
+      window: dom.window as any,
+      document: dom.window.document,
+      resources: [{ url: 'http://example.com/image.png', domain: 'example.com', type: 'image', thirdParty: false, tracker: false }]
+    };
+    const issues = await SecurityEngine.run(context);
+    expect(issues.some(i => i.ruleId === 'mixed-content-resource')).toBe(true);
+  });
+
+  it('should detect unsafe target blank links', async () => {
+    const dom = new JSDOM('<!DOCTYPE html><html><body><a href="https://external.com" target="_blank">External</a></body></html>', { url: 'https://example.com/' });
+    const context = {
+      window: dom.window as any,
+      document: dom.window.document,
+      resources: []
+    };
+    const issues = await SecurityEngine.run(context);
+    expect(issues.some(i => i.ruleId === 'unsafe-target-blank')).toBe(true);
+  });
+
+  it('should detect insecure form actions', async () => {
+    const dom = new JSDOM('<!DOCTYPE html><html><body><form action="http://insecure-api.com/submit"></form></body></html>', { url: 'https://example.com/' });
+    const context = {
+      window: dom.window as any,
+      document: dom.window.document,
+      resources: []
+    };
+    const issues = await SecurityEngine.run(context);
+    expect(issues.some(i => i.ruleId === 'insecure-form-action')).toBe(true);
+  });
+});
+
+describe('SEO Audit Engine', () => {
+  it('should detect missing title and meta descriptions', async () => {
+    const dom = new JSDOM('<!DOCTYPE html><html><head></head><body></body></html>', { url: 'https://example.com/' });
+    const context = {
+      window: dom.window as any,
+      document: dom.window.document,
+      resources: []
+    };
+    const issues = await SeoEngine.run(context);
+    expect(issues.some(i => i.ruleId === 'missing-seo-title')).toBe(true);
+    expect(issues.some(i => i.ruleId === 'missing-seo-description')).toBe(true);
+  });
+
+  it('should detect suboptimal title lengths', async () => {
+    const dom = new JSDOM('<!DOCTYPE html><html><head><title>Too Short</title></head><body></body></html>', { url: 'https://example.com/' });
+    const context = {
+      window: dom.window as any,
+      document: dom.window.document,
+      resources: []
+    };
+    const issues = await SeoEngine.run(context);
+    expect(issues.some(i => i.ruleId === 'seo-title-length')).toBe(true);
+  });
+
+  it('should detect missing or multiple H1 elements', async () => {
+    const dom = new JSDOM('<!DOCTYPE html><html><body><h1>Header 1</h1><h1>Header 2</h1></body></html>', { url: 'https://example.com/' });
+    const context = {
+      window: dom.window as any,
+      document: dom.window.document,
+      resources: []
+    };
+    const issues = await SeoEngine.run(context);
+    expect(issues.some(i => i.ruleId === 'multiple-h1s')).toBe(true);
   });
 });

@@ -101,6 +101,54 @@ export class InsightsCompiler {
     const readerController = new ReaderModeController(document);
     const mainContentFound = readerController.extractMainContent() !== null;
 
+    // SEO Metadata Scraping
+    const titleEl = document.querySelector('title');
+    const titleText = titleEl ? titleEl.textContent?.trim() || '' : '';
+    const descEl = document.querySelector('meta[name="description"]');
+    const descText = descEl ? descEl.getAttribute('content')?.trim() || '' : '';
+    const canonicalEl = document.querySelector('link[rel="canonical"]');
+    const canonicalHref = canonicalEl ? canonicalEl.getAttribute('href')?.trim() || undefined : undefined;
+    const robotsEl = document.querySelector('meta[name="robots"]');
+    const robotsText = robotsEl ? robotsEl.getAttribute('content')?.trim() || undefined : undefined;
+    const charsetEl = document.querySelector('meta[charset], meta[http-equiv="content-type"]');
+    let charsetText = charsetEl ? charsetEl.getAttribute('charset') || undefined : undefined;
+    if (!charsetText && charsetEl) {
+      const contentAttr = charsetEl.getAttribute('content') || '';
+      if (contentAttr.includes('charset=')) {
+        charsetText = contentAttr.split('charset=')[1]?.trim();
+      }
+    }
+    const hasViewport = document.querySelector('meta[name="viewport"]') !== null;
+    
+    const structuredDataScripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
+    const structuredDataTypes: string[] = [];
+    structuredDataScripts.forEach(script => {
+      try {
+        const json = JSON.parse(script.textContent || '{}');
+        const type = json['@type'];
+        if (typeof type === 'string') {
+          structuredDataTypes.push(type);
+        } else if (Array.isArray(type)) {
+          structuredDataTypes.push(...type);
+        }
+      } catch {
+        // Ignored invalid JSON
+      }
+    });
+
+    const seoMetadata = {
+      title: titleText || undefined,
+      titleLength: titleText.length,
+      description: descText || undefined,
+      descriptionLength: descText.length,
+      canonical: canonicalHref,
+      robots: robotsText,
+      charset: charsetText,
+      hasViewport,
+      structuredDataCount: structuredDataScripts.length,
+      structuredDataTypes
+    };
+
     return {
       headingsCount,
       imagesCount: { total: images.length, missingAlt: missingAltCount },
@@ -111,7 +159,8 @@ export class InsightsCompiler {
       interstitialsDetected,
       pageLanguage,
       iframeCount,
-      mainContentFound
+      mainContentFound,
+      seoMetadata
     };
   }
 }

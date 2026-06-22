@@ -30,12 +30,26 @@ export class ScoringEngine {
       rawIssues.filter(r => r.engine === 'readability' || r.engine === 'ux')
     );
 
-    // 4. Compute Overall Score
+    // 4. Calculate Security
+    const securityExplanation = ScoringEngine.calculateCategory(
+      'security',
+      rawIssues.filter(r => r.engine === 'security')
+    );
+
+    // 5. Calculate SEO
+    const seoExplanation = ScoringEngine.calculateCategory(
+      'seo',
+      rawIssues.filter(r => r.engine === 'seo')
+    );
+
+    // 6. Compute Overall Score
     const overall = Math.round(
       (accessibilityExplanation.finalScore +
         privacyExplanation.finalScore +
-        uxExplanation.finalScore) /
-        3
+        uxExplanation.finalScore +
+        securityExplanation.finalScore +
+        seoExplanation.finalScore) /
+        5
     );
 
     return {
@@ -43,16 +57,20 @@ export class ScoringEngine {
       accessibility: accessibilityExplanation.finalScore,
       privacy: privacyExplanation.finalScore,
       ux: uxExplanation.finalScore,
+      security: securityExplanation.finalScore,
+      seo: seoExplanation.finalScore,
       explanations: {
         accessibility: accessibilityExplanation,
         privacy: privacyExplanation,
-        ux: uxExplanation
+        ux: uxExplanation,
+        security: securityExplanation,
+        seo: seoExplanation
       }
     };
   }
 
   private static calculateCategory(
-    category: 'accessibility' | 'ux',
+    category: 'accessibility' | 'ux' | 'security' | 'seo',
     issues: RawIssue[]
   ): ScoreExplanation {
     const policy = SCORING_POLICIES[category];

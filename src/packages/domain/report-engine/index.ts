@@ -29,7 +29,9 @@ export class ReportEngine {
       md += `## Score Breakdown\n\n`;
       md += `*   **Accessibility**: ${session.scores.accessibility}/100\n`;
       md += `*   **Privacy & Trust**: ${session.scores.privacy}/100\n`;
-      md += `*   **User Experience (UX)**: ${session.scores.ux}/100\n\n`;
+      md += `*   **User Experience (UX)**: ${session.scores.ux}/100\n`;
+      md += `*   **Security**: ${session.scores.security}/100\n`;
+      md += `*   **SEO**: ${session.scores.seo}/100\n\n`;
 
       if (session.userNotes) {
         md += `## User Notes\n\n`;
@@ -55,6 +57,18 @@ export class ReportEngine {
         md += `\n### Resources & Network Connections\n`;
         md += `*   **Network Requests**: Total: ${insights.resourceSummary.total} (First-party: ${insights.resourceSummary.firstParty}, Third-party: ${insights.resourceSummary.thirdParty})\n`;
         md += `*   **Trackers Identified**: Total: ${insights.trackersSummary.total} (Analytics: ${insights.trackersSummary.analytics}, Advertising: ${insights.trackersSummary.advertising}, Social: ${insights.trackersSummary.social}, Utility: ${insights.trackersSummary.utility})\n\n`;
+        
+        if (insights.seoMetadata) {
+          const seo = insights.seoMetadata;
+          md += `### Technical SEO Metadata\n`;
+          md += `*   **Title tag**: "${seo.title || 'N/A'}" (${seo.titleLength} characters)\n`;
+          md += `*   **Meta Description**: "${seo.description || 'N/A'}" (${seo.descriptionLength} characters)\n`;
+          md += `*   **Canonical URL**: \`${seo.canonical || 'N/A'}\`\n`;
+          md += `*   **Robots Directives**: \`${seo.robots || 'N/A'}\`\n`;
+          md += `*   **Charset encoding**: \`${seo.charset || 'N/A'}\`\n`;
+          md += `*   **Viewport Tag present**: ${seo.hasViewport ? 'Yes' : 'No'}\n`;
+          md += `*   **Structured schema blocks count**: ${seo.structuredDataCount} tags found (${seo.structuredDataTypes.join(', ') || 'None'})\n\n`;
+        }
       }
 
       if (comparison) {
@@ -67,7 +81,9 @@ export class ReportEngine {
         md += `*   **Overall Score**: ${comparison.scoreDeltas.overall.before} -> ${comparison.scoreDeltas.overall.after} (${comparison.scoreDeltas.overall.difference >= 0 ? '+' : ''}${comparison.scoreDeltas.overall.difference})\n`;
         md += `*   **Accessibility**: ${comparison.scoreDeltas.accessibility.before} -> ${comparison.scoreDeltas.accessibility.after} (${comparison.scoreDeltas.accessibility.difference >= 0 ? '+' : ''}${comparison.scoreDeltas.accessibility.difference})\n`;
         md += `*   **Privacy & Trust**: ${comparison.scoreDeltas.privacy.before} -> ${comparison.scoreDeltas.privacy.after} (${comparison.scoreDeltas.privacy.difference >= 0 ? '+' : ''}${comparison.scoreDeltas.privacy.difference})\n`;
-        md += `*   **UX**: ${comparison.scoreDeltas.ux.before} -> ${comparison.scoreDeltas.ux.after} (${comparison.scoreDeltas.ux.difference >= 0 ? '+' : ''}${comparison.scoreDeltas.ux.difference})\n\n`;
+        md += `*   **UX**: ${comparison.scoreDeltas.ux.before} -> ${comparison.scoreDeltas.ux.after} (${comparison.scoreDeltas.ux.difference >= 0 ? '+' : ''}${comparison.scoreDeltas.ux.difference})\n`;
+        md += `*   **Security**: ${comparison.scoreDeltas.security.before} -> ${comparison.scoreDeltas.security.after} (${comparison.scoreDeltas.security.difference >= 0 ? '+' : ''}${comparison.scoreDeltas.security.difference})\n`;
+        md += `*   **SEO**: ${comparison.scoreDeltas.seo.before} -> ${comparison.scoreDeltas.seo.after} (${comparison.scoreDeltas.seo.difference >= 0 ? '+' : ''}${comparison.scoreDeltas.seo.difference})\n\n`;
 
         if (comparison.insightsDelta) {
           md += `### Structural Deltas\n`;
@@ -114,7 +130,9 @@ export class ReportEngine {
           accessibility: 'Accessibility',
           privacy: 'Privacy & Trust',
           ux: 'UX & Readability',
-          readability: 'UX & Readability'
+          readability: 'UX & Readability',
+          security: 'Security',
+          seo: 'SEO'
         };
 
         session.issues.forEach((issue, idx) => {

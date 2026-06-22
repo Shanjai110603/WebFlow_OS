@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FixerState, AuditSession, ComparisonReport, TypographyConfig, ScanProfileType } from '@shared/types';
 import { DEFAULT_FIXER_STATE } from '@shared/constants';
 
-type TabType = 'dashboard' | 'insights' | 'fixer' | 'accessibility' | 'privacy' | 'compare' | 'history';
+type TabType = 'dashboard' | 'insights' | 'fixer' | 'accessibility' | 'privacy-security' | 'seo' | 'compare' | 'history';
 
 interface CircularGaugeProps {
   score: number;
@@ -105,12 +105,15 @@ export const SidePanelApp: React.FC = () => {
   // Accessibility severity filter state
   const [severityFilter, setSeverityFilter] = useState<'all' | 'critical' | 'warning' | 'info'>('all');
 
-  // Upgraded v1.3.0 features states:
+  // Combined Privacy & Security sub-tab selection
+  const [privacySecSubTab, setPrivacySecSubTab] = useState<'privacy' | 'security'>('privacy');
+
+  // Upgraded v1.4.0 features states:
   const [selectedProfile, setSelectedProfile] = useState<ScanProfileType>('full');
   const [expandedIssueIds, setExpandedIssueIds] = useState<Record<string, boolean>>({});
   const [historySearch, setHistorySearch] = useState('');
   const [groupByDomain, setGroupByDomain] = useState(false);
-  const [historySort, setHistorySort] = useState<'date-desc' | 'date-asc' | 'score-desc'>('date-desc');
+  const [historySort, setHistorySort] = useState<'date-desc' | 'date-asc' | 'score-desc' | 'worst-security' | 'worst-seo'>('date-desc');
   const [notesText, setNotesText] = useState<Record<string, string>>({});
   const [showDeveloperDetails, setShowDeveloperDetails] = useState(false);
 
@@ -386,9 +389,9 @@ export const SidePanelApp: React.FC = () => {
   // Calculate quick wins
   const quickWins = session ? session.issues.filter(issue => {
     const isCriticalOrWarning = issue.severity === 'critical' || issue.severity === 'warning';
-    const isA11yOrPrivacy = issue.category === 'accessibility' || issue.category === 'privacy';
+    const isA11yOrPrivacyOrSec = issue.category === 'accessibility' || issue.category === 'privacy' || issue.category === 'security';
     const hasPreview = !!(issue.quickFixPreviewSelector || issue.locator?.primarySelector);
-    return isCriticalOrWarning && isA11yOrPrivacy && hasPreview;
+    return isCriticalOrWarning && isA11yOrPrivacyOrSec && hasPreview;
   }).slice(0, 3) : [];
 
   // Plain warnings generator for insights
@@ -450,6 +453,8 @@ export const SidePanelApp: React.FC = () => {
     if (historySort === 'date-desc') return b.completedAt - a.completedAt;
     if (historySort === 'date-asc') return a.completedAt - b.completedAt;
     if (historySort === 'score-desc') return b.scores.overall - a.scores.overall;
+    if (historySort === 'worst-security') return a.scores.security - b.scores.security;
+    if (historySort === 'worst-seo') return a.scores.seo - b.scores.seo;
     return 0;
   });
 
@@ -468,7 +473,7 @@ export const SidePanelApp: React.FC = () => {
     <div className="flex flex-col" style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
       {/* Workspace Menu Tabs */}
       <div className="flex" style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-secondary)', padding: '0 8px', overflowX: 'auto', position: 'sticky', top: 0, zIndex: 100 }}>
-        {(['dashboard', 'insights', 'fixer', 'accessibility', 'privacy', 'compare', 'history'] as TabType[]).map(tab => (
+        {(['dashboard', 'insights', 'fixer', 'accessibility', 'privacy-security', 'seo', 'compare', 'history'] as TabType[]).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -487,7 +492,7 @@ export const SidePanelApp: React.FC = () => {
               whiteSpace: 'nowrap'
             }}
           >
-            {tab === 'fixer' ? 'Fix Page' : tab}
+            {tab === 'fixer' ? 'Fix Page' : tab === 'privacy-security' ? 'Privacy & Security' : tab === 'seo' ? 'SEO & Health' : tab}
           </button>
         ))}
       </div>
@@ -521,6 +526,8 @@ export const SidePanelApp: React.FC = () => {
                   <option value="quick">Quick preset (High-priority failures)</option>
                   <option value="accessibility">Accessibility focused scan</option>
                   <option value="privacy">Privacy & tracker audit focus</option>
+                  <option value="security">Security transport & vulnerability scan</option>
+                  <option value="seo">Technical SEO focused scan</option>
                   <option value="ux">UX / Readability heuristics</option>
                   <option value="developer">Developer verbose scan</option>
                   <option value="summary">Summary check (Page Metadata)</option>
@@ -534,7 +541,7 @@ export const SidePanelApp: React.FC = () => {
               <div>
                 <h2 style={{ fontWeight: 700 }}>Analyze Target Webpage</h2>
                 <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
-                  Audits DOM hierarchies, labels contrast, and sniffs tracker resource networks.
+                  Audits DOM structures, connection safety, and search crawler index metrics.
                 </p>
               </div>
               <button className="btn" onClick={handleRunScan} style={{ width: '100%' }}>
@@ -556,12 +563,30 @@ export const SidePanelApp: React.FC = () => {
                     score={session.scores.privacy}
                     label="Privacy"
                     colorVar="var(--accent-green)"
-                    onClick={() => setActiveTab('privacy')}
+                    onClick={() => {
+                      setActiveTab('privacy-security');
+                      setPrivacySecSubTab('privacy');
+                    }}
                   />
                   <CircularGauge
                     score={session.scores.ux}
-                    label="UX"
+                    label="UX / UI"
                     colorVar="var(--accent-amber)"
+                  />
+                  <CircularGauge
+                    score={session.scores.security}
+                    label="Security"
+                    colorVar="var(--accent-red)"
+                    onClick={() => {
+                      setActiveTab('privacy-security');
+                      setPrivacySecSubTab('security');
+                    }}
+                  />
+                  <CircularGauge
+                    score={session.scores.seo}
+                    label="SEO"
+                    colorVar="var(--accent-purple-hover)"
+                    onClick={() => setActiveTab('seo')}
                   />
                 </div>
 
@@ -569,7 +594,7 @@ export const SidePanelApp: React.FC = () => {
                   <div>
                     <h3 style={{ fontSize: 14, fontWeight: 700 }}>Overall Score</h3>
                     <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
-                      Average evaluation weight
+                      Average of 5 evaluation categories
                     </p>
                   </div>
                   <div style={{ fontSize: 28, fontWeight: 800, color: session.scores.overall >= 80 ? 'var(--accent-green)' : session.scores.overall >= 50 ? 'var(--accent-amber)' : 'var(--accent-red)' }}>
@@ -599,7 +624,15 @@ export const SidePanelApp: React.FC = () => {
                           className="btn btn-secondary"
                           style={{ padding: '6px 12px', fontSize: 11, alignSelf: 'flex-start', marginTop: 4 }}
                           onClick={() => {
-                            setActiveTab(issue.category === 'accessibility' ? 'accessibility' : 'privacy');
+                            if (issue.category === 'security') {
+                              setActiveTab('privacy-security');
+                              setPrivacySecSubTab('security');
+                            } else if (issue.category === 'privacy') {
+                              setActiveTab('privacy-security');
+                              setPrivacySecSubTab('privacy');
+                            } else {
+                              setActiveTab(issue.category as any);
+                            }
                             toggleIssueExpand(issue.id);
                             setTimeout(() => handleLocateElement(issue.locator?.primarySelector), 100);
                           }}
@@ -1048,84 +1081,357 @@ export const SidePanelApp: React.FC = () => {
           </div>
         )}
 
-        {/* TAB 5: PRIVACY */}
-        {activeTab === 'privacy' && (
+        {/* TAB 5: COMBINED PRIVACY & SECURITY */}
+        {activeTab === 'privacy-security' && (
           <div className="flex flex-col gap-4 animate-fade-in">
+            {/* Sub-tab selection */}
+            <div className="flex gap-2" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: 8 }}>
+              <button
+                className={`btn ${privacySecSubTab === 'privacy' ? '' : 'btn-secondary'}`}
+                style={{ fontSize: 11, padding: '6px 12px' }}
+                onClick={() => setPrivacySecSubTab('privacy')}
+              >
+                🔒 Privacy Findings
+              </button>
+              <button
+                className={`btn ${privacySecSubTab === 'security' ? '' : 'btn-secondary'}`}
+                style={{ fontSize: 11, padding: '6px 12px' }}
+                onClick={() => setPrivacySecSubTab('security')}
+              >
+                🛡️ Security Findings
+              </button>
+            </div>
+
             {session ? (
               <>
-                {/* Connection SSL alert */}
-                {session.page.url.startsWith('https:') ? (
-                  <div className="card flex items-center gap-2" style={{ background: 'var(--accent-green-alpha)', borderColor: 'var(--accent-green)' }}>
-                    <span style={{ fontSize: 18 }}>🔒</span>
-                    <div>
-                      <p style={{ fontWeight: 700, color: 'var(--accent-green)' }}>Encrypted SSL Connection</p>
-                      <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Hostname verifies SSL cert structures.</p>
+                {privacySecSubTab === 'privacy' && (
+                  <div className="flex flex-col gap-4 animate-fade-in">
+                    {/* Connection SSL alert */}
+                    {session.page.url.startsWith('https:') ? (
+                      <div className="card flex items-center gap-2" style={{ background: 'var(--accent-green-alpha)', borderColor: 'var(--accent-green)' }}>
+                        <span style={{ fontSize: 18 }}>🔒</span>
+                        <div>
+                          <p style={{ fontWeight: 700, color: 'var(--accent-green)' }}>Encrypted SSL Connection</p>
+                          <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Hostname verifies SSL cert structures.</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="card flex items-center gap-2" style={{ background: 'var(--accent-red-alpha)', borderColor: 'var(--accent-red)' }}>
+                        <span style={{ fontSize: 18 }}>⚠️</span>
+                        <div>
+                          <p style={{ fontWeight: 700, color: 'var(--accent-red)' }}>Insecure Connection (HTTP)</p>
+                          <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Data sent is unencrypted and vulnerable to sniffing.</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Sniffed resource summaries */}
+                    <div className="card flex flex-col gap-3">
+                      <h3 style={{ fontSize: 13, fontWeight: 700, borderBottom: '1px solid var(--border-color)', paddingBottom: 6 }}>
+                        Resource Requests Summary
+                      </h3>
+                      <div className="grid grid-cols-2 gap-2" style={{ textAlign: 'center' }}>
+                        <div className="card" style={{ padding: 10 }}>
+                          <p style={{ fontSize: 18, fontWeight: 800 }}>{session.resources.length}</p>
+                          <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Total Assets Loaded</p>
+                        </div>
+                        <div className="card" style={{ padding: 10 }}>
+                          <p style={{ fontSize: 18, fontWeight: 800 }}>
+                            {session.resources.filter(r => r.thirdParty).length}
+                          </p>
+                          <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Third Party Calls</p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="card flex items-center gap-2" style={{ background: 'var(--accent-red-alpha)', borderColor: 'var(--accent-red)' }}>
-                    <span style={{ fontSize: 18 }}>⚠️</span>
-                    <div>
-                      <p style={{ fontWeight: 700, color: 'var(--accent-red)' }}>Insecure Connection (HTTP)</p>
-                      <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Data sent is unencrypted and vulnerable to sniffing.</p>
+
+                    {/* Trackers list */}
+                    <div className="card flex flex-col gap-3">
+                      <h3 style={{ fontSize: 13, fontWeight: 700, borderBottom: '1px solid var(--border-color)', paddingBottom: 6 }}>
+                        Sniffed Third-Party Trackers ({session.resources.filter(r => r.tracker).length})
+                      </h3>
+                      {session.resources.filter(r => r.tracker).length === 0 ? (
+                        <p style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '8px 0' }}>
+                          No analytical or marketing tracking domains detected.
+                        </p>
+                      ) : (
+                        <div style={{ maxHeight: 150, overflowY: 'auto', fontSize: 11, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {session.resources.filter(r => r.tracker).map((res, index) => (
+                            <div key={index} className="flex justify-between" style={{ padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                              <span style={{ wordBreak: 'break-all', maxWidth: 160 }}>{res.domain}</span>
+                              <span className="badge badge-warning" style={{ fontSize: 9 }}>{res.trackerCategory}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Privacy specific issues */}
+                    <div className="flex flex-col gap-2">
+                      <h3 style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                        Privacy & Trust Violations
+                      </h3>
+                      {session.issues.filter(i => i.category === 'privacy').length === 0 ? (
+                        <div className="card text-secondary" style={{ padding: 12, fontSize: 12 }}>
+                          No privacy violations or dark patterns detected.
+                        </div>
+                      ) : (
+                        session.issues.filter(i => i.category === 'privacy').map(issue => {
+                          const isExpanded = !!expandedIssueIds[issue.id];
+                          return (
+                            <div key={issue.id} className="card flex flex-col gap-2" style={{ borderLeft: '4px solid var(--accent-red)' }}>
+                              <div className="flex items-center justify-between" style={{ cursor: 'pointer' }} onClick={() => toggleIssueExpand(issue.id)}>
+                                <span className={`badge badge-${issue.severity}`}>{issue.severity}</span>
+                                <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{isExpanded ? '▼' : '▶'}</span>
+                              </div>
+                              <h4 style={{ fontWeight: 700 }} onClick={() => toggleIssueExpand(issue.id)}>{issue.title}</h4>
+                              <p style={{ fontSize: 12, color: 'var(--text-secondary)' }} onClick={() => toggleIssueExpand(issue.id)}>{issue.description}</p>
+                              
+                              {isExpanded && (
+                                <div className="flex flex-col gap-2 animate-fade-in" style={{ padding: '8px 10px', background: 'var(--bg-tertiary)', borderRadius: 6, fontSize: 11, marginTop: 4 }}>
+                                  <p style={{ color: 'var(--text-secondary)' }}><strong>Why it matters:</strong> {issue.whyItMatters}</p>
+                                  <p style={{ color: 'var(--accent-purple-hover)', marginTop: 4 }}><strong>Suggested Remedy:</strong> {issue.remediation}</p>
+                                  {issue.confidence && (
+                                    <p style={{ color: 'var(--text-secondary)', marginTop: 2 }}><strong>Heuristic Confidence:</strong> {issue.confidence}</p>
+                                  )}
+                                  {issue.suggestedFix && (
+                                    <p style={{ color: 'var(--accent-green)', marginTop: 4 }}><strong>Suggested Fix:</strong> <code>{issue.suggestedFix}</code></p>
+                                  )}
+                                  
+                                  {showDeveloperDetails && (
+                                    <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: 4, fontFamily: 'monospace', fontSize: 10, color: 'var(--text-secondary)' }}>
+                                      {issue.locator?.primarySelector && <p><strong>CSS:</strong> {issue.locator.primarySelector}</p>}
+                                      {issue.locator?.xpath && <p><strong>XPath:</strong> {issue.locator.xpath}</p>}
+                                      {issue.locator?.domPath && <p><strong>DOM Path:</strong> {issue.locator.domPath.join(' > ')}</p>}
+                                      {issue.evidence && <p style={{ overflowX: 'auto', background: 'rgba(0,0,0,0.3)', padding: 4 }}><strong>Evidence:</strong> {issue.evidence}</p>}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              <div className="flex gap-2" style={{ marginTop: 4 }}>
+                                {issue.locator?.primarySelector && (
+                                  <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: 11 }} onClick={() => handleLocateElement(issue.locator?.primarySelector)}>
+                                    🔍 {activeHighlightSelector === issue.locator.primarySelector ? 'Clear Overlay' : 'Highlight'}
+                                  </button>
+                                )}
+                                {issue.quickFixPreviewSelector && (
+                                  <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: 11 }} onClick={() => handleLocateElement(issue.quickFixPreviewSelector)}>
+                                    ⚡ Preview Local Fix
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
                   </div>
                 )}
 
-                {/* Sniffed resource summaries */}
-                <div className="card flex flex-col gap-3">
-                  <h3 style={{ fontSize: 13, fontWeight: 700, borderBottom: '1px solid var(--border-color)', paddingBottom: 6 }}>
-                    Resource Requests Summary
-                  </h3>
-                  <div className="grid grid-cols-2 gap-2" style={{ textAlign: 'center' }}>
-                    <div className="card" style={{ padding: 10 }}>
-                      <p style={{ fontSize: 18, fontWeight: 800 }}>{session.resources.length}</p>
-                      <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Total Assets Loaded</p>
+                {privacySecSubTab === 'security' && (
+                  <div className="flex flex-col gap-4 animate-fade-in">
+                    {/* Security overview stats card */}
+                    <div className="card flex flex-col gap-3">
+                      <h3 style={{ fontSize: 13, fontWeight: 700, borderBottom: '1px solid var(--border-color)', paddingBottom: 6 }}>
+                        Security Overview & Metrics
+                      </h3>
+                      <div className="flex flex-col gap-2" style={{ fontSize: 12 }}>
+                        <div className="flex justify-between">
+                          <span>SSL Protection:</span>
+                          <strong style={{ color: session.page.url.startsWith('https:') ? 'var(--accent-green)' : 'var(--accent-red)' }}>
+                            {session.page.url.startsWith('https:') ? 'Active (HTTPS)' : 'Insecure Connection (HTTP)'}
+                          </strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Insecure Resource Requests:</span>
+                          <strong>{session.resources.filter(r => r.url.startsWith('http:') && session.page.url.startsWith('https:')).length}</strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Iframe embeds count:</span>
+                          <strong>{session.insights?.iframeCount || 0}</strong>
+                        </div>
+                      </div>
                     </div>
-                    <div className="card" style={{ padding: 10 }}>
-                      <p style={{ fontSize: 18, fontWeight: 800 }}>
-                        {session.resources.filter(r => r.thirdParty).length}
+
+                    {/* Security specific issues */}
+                    <div className="flex flex-col gap-2">
+                      <h3 style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                        Security & Code Safety Violations
+                      </h3>
+                      {session.issues.filter(i => i.category === 'security').length === 0 ? (
+                        <div className="card text-secondary" style={{ padding: 12, fontSize: 12 }}>
+                          No browser-observable security violations detected on this page.
+                        </div>
+                      ) : (
+                        session.issues.filter(i => i.category === 'security').map(issue => {
+                          const isExpanded = !!expandedIssueIds[issue.id];
+                          return (
+                            <div key={issue.id} className="card flex flex-col gap-2" style={{ borderLeft: '4px solid var(--accent-red)' }}>
+                              <div className="flex items-center justify-between" style={{ cursor: 'pointer' }} onClick={() => toggleIssueExpand(issue.id)}>
+                                <span className={`badge badge-${issue.severity}`}>{issue.severity}</span>
+                                <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{isExpanded ? '▼' : '▶'}</span>
+                              </div>
+                              <h4 style={{ fontWeight: 700 }} onClick={() => toggleIssueExpand(issue.id)}>{issue.title}</h4>
+                              <p style={{ fontSize: 12, color: 'var(--text-secondary)' }} onClick={() => toggleIssueExpand(issue.id)}>{issue.description}</p>
+                              
+                              {isExpanded && (
+                                <div className="flex flex-col gap-2 animate-fade-in" style={{ padding: '8px 10px', background: 'var(--bg-tertiary)', borderRadius: 6, fontSize: 11, marginTop: 4 }}>
+                                  <p style={{ color: 'var(--text-secondary)' }}><strong>Why it matters:</strong> {issue.whyItMatters}</p>
+                                  <p style={{ color: 'var(--accent-purple-hover)', marginTop: 4 }}><strong>Suggested Remedy:</strong> {issue.remediation}</p>
+                                  {issue.confidence && (
+                                    <p style={{ color: 'var(--text-secondary)', marginTop: 2 }}><strong>Heuristic Confidence:</strong> {issue.confidence}</p>
+                                  )}
+                                  {issue.suggestedFix && (
+                                    <p style={{ color: 'var(--accent-green)', marginTop: 4 }}><strong>Suggested Fix:</strong> <code>{issue.suggestedFix}</code></p>
+                                  )}
+
+                                  {showDeveloperDetails && (
+                                    <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: 4, fontFamily: 'monospace', fontSize: 10, color: 'var(--text-secondary)' }}>
+                                      {issue.locator?.primarySelector && <p><strong>CSS:</strong> {issue.locator.primarySelector}</p>}
+                                      {issue.locator?.xpath && <p><strong>XPath:</strong> {issue.locator.xpath}</p>}
+                                      {issue.locator?.domPath && <p><strong>DOM Path:</strong> {issue.locator.domPath.join(' > ')}</p>}
+                                      {issue.evidence && <p style={{ overflowX: 'auto', background: 'rgba(0,0,0,0.3)', padding: 4 }}><strong>Evidence:</strong> {issue.evidence}</p>}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              <div className="flex gap-2" style={{ marginTop: 4 }}>
+                                {issue.locator?.primarySelector && (
+                                  <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: 11 }} onClick={() => handleLocateElement(issue.locator?.primarySelector)}>
+                                    🔍 {activeHighlightSelector === issue.locator.primarySelector ? 'Clear Overlay' : 'Highlight'}
+                                  </button>
+                                )}
+                                {issue.quickFixPreviewSelector && (
+                                  <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: 11 }} onClick={() => handleLocateElement(issue.quickFixPreviewSelector)}>
+                                    ⚡ Preview Local Fix
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="card flex items-center justify-center" style={{ padding: 40, color: 'var(--text-secondary)', textAlign: 'center' }}>
+                Unscanned URL domain. Please run an audit scan first.
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 6: SEO & HEALTH */}
+        {activeTab === 'seo' && (
+          <div className="flex flex-col gap-4 animate-fade-in">
+            {session && session.insights && session.insights.seoMetadata ? (
+              <>
+                {/* Meta tags summary table */}
+                <div className="card flex flex-col gap-3">
+                  <h3 style={{ fontSize: 14, fontWeight: 700, borderBottom: '1px solid var(--border-color)', paddingBottom: 6 }}>
+                    Technical SEO Metadata
+                  </h3>
+                  <div className="flex flex-col gap-2" style={{ fontSize: 11 }}>
+                    <div style={{ padding: 6, background: 'var(--bg-tertiary)', borderRadius: 6 }}>
+                      <div className="flex justify-between font-bold">
+                        <span>Title Tag:</span>
+                        <span style={{ color: (session.insights.seoMetadata.titleLength >= 30 && session.insights.seoMetadata.titleLength <= 60) ? 'var(--accent-green)' : 'var(--accent-amber)' }}>
+                          {session.insights.seoMetadata.titleLength} Chars
+                        </span>
+                      </div>
+                      <p style={{ marginTop: 4, color: 'var(--text-secondary)', wordBreak: 'break-all' }}>
+                        "{session.insights.seoMetadata.title || 'Missing title element'}"
                       </p>
-                      <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Third Party Calls</p>
+                    </div>
+
+                    <div style={{ padding: 6, background: 'var(--bg-tertiary)', borderRadius: 6, marginTop: 4 }}>
+                      <div className="flex justify-between font-bold">
+                        <span>Meta Description:</span>
+                        <span style={{ color: (session.insights.seoMetadata.descriptionLength >= 70 && session.insights.seoMetadata.descriptionLength <= 160) ? 'var(--accent-green)' : 'var(--accent-amber)' }}>
+                          {session.insights.seoMetadata.descriptionLength} Chars
+                        </span>
+                      </div>
+                      <p style={{ marginTop: 4, color: 'var(--text-secondary)', wordBreak: 'break-all' }}>
+                        "{session.insights.seoMetadata.description || 'Missing description metadata'}"
+                      </p>
+                    </div>
+
+                    <div className="flex justify-between style={{ marginTop: 4 }}">
+                      <span>Canonical Link URL:</span>
+                      <strong style={{ wordBreak: 'break-all', maxWidth: 160 }}>
+                        {session.insights.seoMetadata.canonical || <span style={{ color: 'var(--accent-red)' }}>Missing Canonical</span>}
+                      </strong>
+                    </div>
+
+                    <div className="flex justify-between">
+                      <span>Robots Index Directives:</span>
+                      <strong>{session.insights.seoMetadata.robots || 'None'}</strong>
+                    </div>
+
+                    <div className="flex justify-between">
+                      <span>Mobile Viewport Config:</span>
+                      <strong style={{ color: session.insights.seoMetadata.hasViewport ? 'var(--accent-green)' : 'var(--accent-red)' }}>
+                        {session.insights.seoMetadata.hasViewport ? 'Configured' : 'Missing tag'}
+                      </strong>
+                    </div>
+
+                    <div className="flex justify-between">
+                      <span>Structured Schema Blocks:</span>
+                      <strong>{session.insights.seoMetadata.structuredDataCount} Tags</strong>
+                    </div>
+
+                    {session.insights.seoMetadata.structuredDataCount > 0 && (
+                      <div style={{ color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: 10 }}>
+                        Schemas: {session.insights.seoMetadata.structuredDataTypes.join(', ')}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Headings Outline structural layout */}
+                <div className="card flex flex-col gap-3">
+                  <h3 style={{ fontSize: 14, fontWeight: 700, borderBottom: '1px solid var(--border-color)', paddingBottom: 6 }}>
+                    Headings structural outline
+                  </h3>
+                  <div className="flex flex-col gap-1" style={{ fontSize: 12 }}>
+                    <div className="flex justify-between">
+                      <span>Total Heading elements:</span>
+                      <strong>
+                        {session.insights.headingsCount.h1 +
+                          session.insights.headingsCount.h2 +
+                          session.insights.headingsCount.h3 +
+                          session.insights.headingsCount.h4 +
+                          session.insights.headingsCount.h5 +
+                          session.insights.headingsCount.h6}
+                      </strong>
+                    </div>
+                    <div style={{ height: 1, background: 'var(--border-color)', margin: '4px 0' }} />
+                    <div className="flex justify-between" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                      <span>H1 count (ideal: 1):</span>
+                      <strong style={{ color: session.insights.headingsCount.h1 === 1 ? 'var(--accent-green)' : 'var(--accent-amber)' }}>
+                        {session.insights.headingsCount.h1}
+                      </strong>
                     </div>
                   </div>
                 </div>
 
-                {/* Trackers list */}
-                <div className="card flex flex-col gap-3">
-                  <h3 style={{ fontSize: 13, fontWeight: 700, borderBottom: '1px solid var(--border-color)', paddingBottom: 6 }}>
-                    Sniffed Third-Party Trackers ({session.resources.filter(r => r.tracker).length})
-                  </h3>
-                  {session.resources.filter(r => r.tracker).length === 0 ? (
-                    <p style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '8px 0' }}>
-                      No analytical or marketing tracking domains detected.
-                    </p>
-                  ) : (
-                    <div style={{ maxHeight: 150, overflowY: 'auto', fontSize: 11, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {session.resources.filter(r => r.tracker).map((res, index) => (
-                        <div key={index} className="flex justify-between" style={{ padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                          <span style={{ wordBreak: 'break-all', maxWidth: 160 }}>{res.domain}</span>
-                          <span className="badge badge-warning" style={{ fontSize: 9 }}>{res.trackerCategory}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Privacy specific issues */}
+                {/* SEO specific issues */}
                 <div className="flex flex-col gap-2">
                   <h3 style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
-                    Privacy & Trust Violations
+                    SEO Violations & Suggestions
                   </h3>
-                  {session.issues.filter(i => i.category === 'privacy').length === 0 ? (
+                  {session.issues.filter(i => i.category === 'seo').length === 0 ? (
                     <div className="card text-secondary" style={{ padding: 12, fontSize: 12 }}>
-                      No privacy violations or dark patterns detected.
+                      No technical SEO violations identified.
                     </div>
                   ) : (
-                    session.issues.filter(i => i.category === 'privacy').map(issue => {
+                    session.issues.filter(i => i.category === 'seo').map(issue => {
                       const isExpanded = !!expandedIssueIds[issue.id];
                       return (
-                        <div key={issue.id} className="card flex flex-col gap-2" style={{ borderLeft: '4px solid var(--accent-red)' }}>
+                        <div key={issue.id} className="card flex flex-col gap-2" style={{ borderLeft: `4px solid var(--accent-${issue.severity === 'critical' ? 'red' : 'warning'})` }}>
                           <div className="flex items-center justify-between" style={{ cursor: 'pointer' }} onClick={() => toggleIssueExpand(issue.id)}>
                             <span className={`badge badge-${issue.severity}`}>{issue.severity}</span>
                             <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{isExpanded ? '▼' : '▶'}</span>
@@ -1144,7 +1450,6 @@ export const SidePanelApp: React.FC = () => {
                                 <p style={{ color: 'var(--accent-green)', marginTop: 4 }}><strong>Suggested Fix:</strong> <code>{issue.suggestedFix}</code></p>
                               )}
 
-                              {/* Advanced specs disclosure */}
                               {showDeveloperDetails && (
                                 <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: 4, fontFamily: 'monospace', fontSize: 10, color: 'var(--text-secondary)' }}>
                                   {issue.locator?.primarySelector && <p><strong>CSS:</strong> {issue.locator.primarySelector}</p>}
@@ -1182,7 +1487,7 @@ export const SidePanelApp: React.FC = () => {
           </div>
         )}
 
-        {/* TAB 6: COMPARE */}
+        {/* TAB 7: COMPARE */}
         {activeTab === 'compare' && (
           <div className="flex flex-col gap-4 animate-fade-in">
             <div className="card flex flex-col gap-3">
@@ -1240,6 +1545,30 @@ export const SidePanelApp: React.FC = () => {
                     </div>
                   </div>
 
+                  <div className="flex flex-col gap-2" style={{ fontSize: 11 }}>
+                    <h5 style={{ fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', fontSize: 9 }}>Category Score Deltas</h5>
+                    <div className="flex justify-between">
+                      <span>Accessibility:</span>
+                      <strong>{compareReport.scoreDeltas.accessibility.difference >= 0 ? '+' : ''}{compareReport.scoreDeltas.accessibility.difference} ({compareReport.scoreDeltas.accessibility.before} ➔ {compareReport.scoreDeltas.accessibility.after})</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Privacy:</span>
+                      <strong>{compareReport.scoreDeltas.privacy.difference >= 0 ? '+' : ''}{compareReport.scoreDeltas.privacy.difference} ({compareReport.scoreDeltas.privacy.before} ➔ {compareReport.scoreDeltas.privacy.after})</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>UX / UI:</span>
+                      <strong>{compareReport.scoreDeltas.ux.difference >= 0 ? '+' : ''}{compareReport.scoreDeltas.ux.difference} ({compareReport.scoreDeltas.ux.before} ➔ {compareReport.scoreDeltas.ux.after})</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Security:</span>
+                      <strong>{compareReport.scoreDeltas.security.difference >= 0 ? '+' : ''}{compareReport.scoreDeltas.security.difference} ({compareReport.scoreDeltas.security.before} ➔ {compareReport.scoreDeltas.security.after})</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>SEO:</span>
+                      <strong>{compareReport.scoreDeltas.seo.difference >= 0 ? '+' : ''}{compareReport.scoreDeltas.seo.difference} ({compareReport.scoreDeltas.seo.before} ➔ {compareReport.scoreDeltas.seo.after})</strong>
+                    </div>
+                  </div>
+
                   {/* List of Resolved Issues */}
                   {compareReport.resolvedIssues.length > 0 && (
                     <div className="flex flex-col gap-1" style={{ marginTop: 4 }}>
@@ -1279,7 +1608,7 @@ export const SidePanelApp: React.FC = () => {
           </div>
         )}
 
-        {/* TAB 7: HISTORY */}
+        {/* TAB 8: HISTORY */}
         {activeTab === 'history' && (
           <div className="flex flex-col gap-4 animate-fade-in">
             {/* Search, Sort, and Filtering widgets */}
@@ -1308,6 +1637,8 @@ export const SidePanelApp: React.FC = () => {
                     <option value="date-desc">Newest First</option>
                     <option value="date-asc">Oldest First</option>
                     <option value="score-desc">Highest Score</option>
+                    <option value="worst-security">Worst Security Score</option>
+                    <option value="worst-seo">Worst SEO Score</option>
                   </select>
                 </div>
                 <div className="flex items-center gap-2" style={{ marginTop: 14 }}>
@@ -1482,7 +1813,7 @@ export const SidePanelApp: React.FC = () => {
 
         {/* Global Developer Details disclosure switch in Footer */}
         <div style={{ marginTop: 'auto', borderTop: '1px solid var(--border-color)', paddingTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>WebLens OS workspace v1.3.0</span>
+          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>WebLens OS workspace v1.4.0</span>
           <div className="flex items-center gap-2">
             <label className="switch" style={{ width: 34, height: 18 }}>
               <input

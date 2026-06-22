@@ -30,7 +30,6 @@ import {
   KnownTrackerRule,
   OverlayDarkPatternRule,
   InsecureFormsHttpRule,
-  UnsafeTargetBlankRule,
   SuspiciousConsentButtonsRule,
   FingerprintingHeuristicsRule
 } from '../privacy-engine';
@@ -45,6 +44,9 @@ import {
   ClutterScoreRule,
   IntrusiveInterstitialRule
 } from '../readability-engine';
+
+import { SECURITY_RULES } from '../security-engine';
+import { SEO_RULES } from '../seo-engine';
 
 export class RuleRegistry {
   private rules: Map<string, AuditRule> = new Map();
@@ -61,9 +63,20 @@ export class RuleRegistry {
       if (!scanProfile || scanProfile === 'full' || scanProfile === 'developer') return true;
       if (scanProfile === 'accessibility') return rule.category === 'accessibility';
       if (scanProfile === 'privacy') return rule.category === 'privacy';
+      if (scanProfile === 'security') return rule.category === 'security';
+      if (scanProfile === 'seo') return rule.category === 'seo';
       if (scanProfile === 'ux') return rule.category === 'readability' || rule.category === 'ux';
       if (scanProfile === 'quick' || scanProfile === 'summary') {
-        const quickRules = ['missing-alt-text', 'missing-form-label', 'http-page', 'mixed-content', 'known-tracker', 'small-body-text'];
+        const quickRules = [
+          'missing-alt-text', 
+          'missing-form-label', 
+          'http-page', 
+          'mixed-content', 
+          'known-tracker', 
+          'small-body-text',
+          'insecure-transport-http',
+          'missing-seo-title'
+        ];
         return quickRules.includes(rule.id);
       }
       return true;
@@ -121,7 +134,6 @@ export function createDefaultRegistry(): RuleRegistry {
   registry.register(KnownTrackerRule);
   registry.register(OverlayDarkPatternRule);
   registry.register(InsecureFormsHttpRule);
-  registry.register(UnsafeTargetBlankRule);
   registry.register(SuspiciousConsentButtonsRule);
   registry.register(FingerprintingHeuristicsRule);
 
@@ -134,6 +146,12 @@ export function createDefaultRegistry(): RuleRegistry {
   registry.register(CrampedTapTargetsRule);
   registry.register(ClutterScoreRule);
   registry.register(IntrusiveInterstitialRule);
+
+  // 4. Security
+  SECURITY_RULES.forEach(rule => registry.register(rule));
+
+  // 5. SEO
+  SEO_RULES.forEach(rule => registry.register(rule));
 
   return registry;
 }
@@ -319,12 +337,6 @@ export class IssueNormalizer {
       whyItMatters: 'Entering credentials or personal information on forms loaded over plain HTTP connections exposes data to packet sniffers.',
       remediation: 'Ensure the page is served entirely over secure HTTPS before collecting user input.'
     },
-    'unsafe-target-blank': {
-      title: 'Link opens target blank without rel safety attributes',
-      subcategory: 'Connection Safety',
-      whyItMatters: 'Using target="_blank" without rel="noopener" allows the newly opened tab to access window.opener, introducing tabnabbing risks.',
-      remediation: 'Add rel="noopener" or rel="noreferrer" attributes to all external anchor links.'
-    },
     'suspicious-consent-buttons': {
       title: 'Cookie banner lacks equivalent reject button',
       subcategory: 'Tracking & Privacy',
@@ -361,6 +373,122 @@ export class IssueNormalizer {
       subcategory: 'UX Obstruction',
       whyItMatters: 'Large popup frames blocking content immediately upon page load frustrate visitors and obstruct user goals.',
       remediation: 'Avoid showing interstitial prompts until a user has scrolled or spent time on content.'
+    },
+    // Security Rules Details
+    'insecure-transport-http': {
+      title: 'Insecure Connection (HTTP)',
+      subcategory: 'Connection Safety',
+      whyItMatters: 'Unencrypted HTTP connections let attackers intercept, trace, or manipulate data shared with the site.',
+      remediation: 'Configure and install SSL/TLS certificates to force all page traffic through HTTPS links.'
+    },
+    'mixed-content-resource': {
+      title: 'Insecure resource requested (Mixed Content)',
+      subcategory: 'Connection Safety',
+      whyItMatters: 'Loading HTTP assets (like images or styles) inside a secure HTTPS page breaks browser security guarantees.',
+      remediation: 'Update all resource links to load over secure HTTPS protocols.'
+    },
+    'unsafe-target-blank': {
+      title: 'Unsafe Target Blank Link',
+      subcategory: 'Navigation Safety',
+      whyItMatters: 'Opening links in new tabs without rel="noopener" or rel="noreferrer" exposes the page to reverse tab-nabbing vulnerability.',
+      remediation: 'Add the rel="noopener noreferrer" attribute to the external anchor element.'
+    },
+    'unsafe-javascript-links': {
+      title: 'Javascript execution links protocol',
+      subcategory: 'Navigation Safety',
+      whyItMatters: 'Using javascript: protocol in href attributes triggers inline scripts execution, which weakens CSP protections.',
+      remediation: 'Bind actions to event listeners on button elements instead of javascript: href strings.'
+    },
+    'insecure-form-action': {
+      title: 'Insecure form submit target',
+      subcategory: 'Form Safety',
+      whyItMatters: 'Forms submitting to HTTP action destinations transmit user inputs unencrypted over the network.',
+      remediation: 'Ensure form action attributes point to secure HTTPS endpoints.'
+    },
+    'insecure-password-form': {
+      title: 'Insecure credential input form',
+      subcategory: 'Form Safety',
+      whyItMatters: 'Entering credentials on plain HTTP pages exposes passwords to network eavesdroppers.',
+      remediation: 'Only load login and password fields on secure HTTPS pages.'
+    },
+    'risky-inline-event-handlers': {
+      title: 'Risky inline script handlers',
+      subcategory: 'DOM Code Smells',
+      whyItMatters: 'Inline attributes (like onclick or onload) violate Content Security Policies and ease XSS injections.',
+      remediation: 'Remove inline attributes and assign event listeners dynamically.'
+    },
+    'deceptive-interaction-blocker': {
+      title: 'Deceptive full-page overlays',
+      subcategory: 'DOM Code Smells',
+      whyItMatters: 'Invisible or high-zIndex overlay covers block layout areas and can hijack mouse clicks.',
+      remediation: 'Ensure overlay layers are user-dismissable and do not cover key controls.'
+    },
+    // SEO Rules Details
+    'missing-seo-title': {
+      title: 'Missing document Title tag',
+      subcategory: 'Page Metadata',
+      whyItMatters: 'Crawl bots require title elements to summarize page concepts and generate search results snippet headings.',
+      remediation: 'Insert a descriptive <title> tag inside the document <head> block.'
+    },
+    'seo-title-length': {
+      title: 'Suboptimal Title length',
+      subcategory: 'Page Metadata',
+      whyItMatters: 'Titles shorter than 30 or longer than 60 characters are clipped or considered non-descriptive by crawlers.',
+      remediation: 'Re-word the title element to stay between 30 and 60 characters.'
+    },
+    'missing-seo-description': {
+      title: 'Missing Meta Description',
+      subcategory: 'Page Metadata',
+      whyItMatters: 'Lacking a meta description forces crawlers to auto-generate snippets, which reduces click-through rates.',
+      remediation: 'Add a <meta name="description" content="..."> tag to summarize page content.'
+    },
+    'seo-description-length': {
+      title: 'Suboptimal Description length',
+      subcategory: 'Page Metadata',
+      whyItMatters: 'Meta descriptions outside 70-160 characters can be cut off or ignored by search snippets.',
+      remediation: 'Optimize the description content length to stay between 70 and 160 characters.'
+    },
+    'missing-canonical-tag': {
+      title: 'Missing Canonical link URL',
+      subcategory: 'Page Metadata',
+      whyItMatters: 'Without a canonical link, search indexes could list multiple URLs for duplicate content views.',
+      remediation: 'Incorporate a <link rel="canonical" href="..."> element referencing the canonical URL.'
+    },
+    'missing-viewport-meta': {
+      title: 'Missing Viewport mobile tag',
+      subcategory: 'Page Metadata',
+      whyItMatters: 'A missing mobile viewport meta prevents mobile responsiveness, leading to low search rankings.',
+      remediation: 'Add a <meta name="viewport" content="width=device-width, initial-scale=1.0"> in the head.'
+    },
+    'missing-h1': {
+      title: 'Missing primary Heading H1',
+      subcategory: 'Heading Structure',
+      whyItMatters: 'The page lacks a main H1 header, making it harder for crawlers to verify the primary topic context.',
+      remediation: 'Wrap the primary layout header inside a single <h1> tag.'
+    },
+    'multiple-h1s': {
+      title: 'Multiple H1 headings detected',
+      subcategory: 'Heading Structure',
+      whyItMatters: 'Using multiple H1 tags can dilute primary context relevance for search indexes.',
+      remediation: 'Limit H1 tags to one primary heading, changing subtopic titles to H2 or H3.'
+    },
+    'broken-heading-hierarchy': {
+      title: 'Skipped headings levels hierarchy',
+      subcategory: 'Heading Structure',
+      whyItMatters: 'Jumping heading levels (e.g. H1 to H3) disrupts structural outlines used by crawlers to digest layouts.',
+      remediation: 'Structure headings sequentially without skipping levels.'
+    },
+    'empty-anchor-seo': {
+      title: 'Empty or generic hyperlinks text',
+      subcategory: 'Link Quality',
+      whyItMatters: 'Links with generic text (like "click here") fail to pass keyword context to target pages.',
+      remediation: 'Replace empty or generic labels with descriptive, keyword-rich phrases.'
+    },
+    'missing-structured-data': {
+      title: 'Missing structured Schema.org data',
+      subcategory: 'Semantic Richness',
+      whyItMatters: 'Schema markup outlines catalog details, letting search results render rich snippets.',
+      remediation: 'Inject JSON-LD schema blocks describing page/product categories.'
     }
   };
 
@@ -373,13 +501,13 @@ export class IssueNormalizer {
     };
 
     const category = raw.engine === 'readability' ? 'ux' : raw.engine;
-    const policy = SCORING_POLICIES[category as 'accessibility' | 'privacy' | 'ux'];
+    const policy = SCORING_POLICIES[category as 'accessibility' | 'privacy' | 'ux' | 'security' | 'seo'];
     const scoreImpact = policy ? policy.deductionWeights[raw.ruleId] || 5 : 5;
 
     return {
       id: raw.id,
       ruleId: raw.ruleId,
-      category: category as 'accessibility' | 'privacy' | 'ux' | 'readability',
+      category: category as 'accessibility' | 'privacy' | 'ux' | 'readability' | 'security' | 'seo',
       subcategory: details.subcategory,
       severity: raw.severity,
       title: details.title,

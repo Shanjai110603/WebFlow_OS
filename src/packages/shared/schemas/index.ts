@@ -65,7 +65,7 @@ export const IssueLocatorSchema = z.object({
 export const AuditIssueSchema = z.object({
   id: z.string(),
   ruleId: z.string(),
-  category: z.enum(['accessibility', 'privacy', 'ux', 'readability']),
+  category: z.enum(['accessibility', 'privacy', 'ux', 'readability', 'security', 'seo']),
   subcategory: z.string(),
   severity: z.enum(['critical', 'warning', 'info']),
   title: z.string(),
@@ -103,7 +103,19 @@ export const PageInsightsSchema = z.object({
   interstitialsDetected: z.number(),
   pageLanguage: z.string().optional(),
   iframeCount: z.number(),
-  mainContentFound: z.boolean()
+  mainContentFound: z.boolean(),
+  seoMetadata: z.object({
+    title: z.string().optional(),
+    titleLength: z.number(),
+    description: z.string().optional(),
+    descriptionLength: z.number(),
+    canonical: z.string().optional(),
+    robots: z.string().optional(),
+    charset: z.string().optional(),
+    hasViewport: z.boolean(),
+    structuredDataCount: z.number(),
+    structuredDataTypes: z.array(z.string())
+  }).optional()
 });
 
 export const DeductionRecordSchema = z.object({
@@ -114,7 +126,7 @@ export const DeductionRecordSchema = z.object({
 });
 
 export const ScoreExplanationSchema = z.object({
-  category: z.enum(['accessibility', 'privacy', 'ux']),
+  category: z.enum(['accessibility', 'privacy', 'ux', 'security', 'seo']),
   startingScore: z.number(),
   deductions: z.array(DeductionRecordSchema),
   finalScore: z.number()
@@ -125,17 +137,21 @@ export const ScoreBreakdownSchema = z.object({
   accessibility: z.number().min(0).max(100),
   privacy: z.number().min(0).max(100),
   ux: z.number().min(0).max(100),
+  security: z.number().min(0).max(100),
+  seo: z.number().min(0).max(100),
   explanations: z.object({
     accessibility: ScoreExplanationSchema,
     privacy: ScoreExplanationSchema,
-    ux: ScoreExplanationSchema
+    ux: ScoreExplanationSchema,
+    security: ScoreExplanationSchema,
+    seo: ScoreExplanationSchema
   })
 });
 
 export const AuditSessionSchema = z.object({
   id: z.string().uuid(),
   schemaVersion: z.number().int(),
-  scanProfile: z.enum(['quick', 'full', 'accessibility', 'privacy', 'ux', 'developer', 'summary']).optional(),
+  scanProfile: z.enum(['quick', 'full', 'accessibility', 'privacy', 'ux', 'security', 'seo', 'developer', 'summary']).optional(),
   page: PageSnapshotSchema,
   startedAt: z.number(),
   completedAt: z.number(),

@@ -194,44 +194,6 @@ export const InsecureFormsHttpRule: AuditRule = {
   }
 };
 
-// --- 6. Unsafe Target Blank Rule ---
-export const UnsafeTargetBlankRule: AuditRule = {
-  id: 'unsafe-target-blank',
-  name: 'Tabnabbing Security Auditor',
-  category: 'privacy',
-  severityDefault: 'warning',
-  scoreImpact: 5,
-  async run(context: ScanContext): Promise<RawIssue[]> {
-    const win = context.window;
-    const doc = context.document;
-    const issues: RawIssue[] = [];
-    const links = doc.querySelectorAll('a[target="_blank"]');
-
-    links.forEach(link => {
-      const el = link as HTMLAnchorElement;
-      const rel = el.getAttribute('rel') || '';
-      const hasSafety = rel.includes('noopener') || rel.includes('noreferrer');
-      const href = el.getAttribute('href') || '';
-      
-      if (!hasSafety && href && !href.startsWith('#') && !href.startsWith('/') && !href.includes(win.location.hostname)) {
-        issues.push({
-          id: `unsafe-target-${Math.random()}`,
-          engine: 'privacy',
-          ruleId: 'unsafe-target-blank',
-          severity: 'warning',
-          locator: createLocator(el),
-          message: `Link opens in a new tab (target="_blank") without safety rel="noopener" or rel="noreferrer" configuration.`,
-          evidence: el.outerHTML.substring(0, 150),
-          metadata: { href },
-          confidence: 'confirmed',
-          suggestedFix: 'Add rel="noopener" or rel="noreferrer" to the anchor tag, e.g. <a href="..." target="_blank" rel="noopener">.'
-        });
-      }
-    });
-
-    return issues;
-  }
-};
 
 // --- 7. Suspicious Consent Buttons Rule ---
 export const SuspiciousConsentButtonsRule: AuditRule = {
