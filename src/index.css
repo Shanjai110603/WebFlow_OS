@@ -4,38 +4,38 @@
 :root {
   /* Surface Color Tokens */
   --bg-primary: #07070b;
-  --bg-secondary: rgba(15, 15, 26, 0.75);
-  --bg-tertiary: rgba(26, 26, 42, 0.65);
-  --glass-bg: rgba(20, 20, 35, 0.55);
-  --glass-bg-hover: rgba(30, 30, 52, 0.75);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-border-hover: rgba(139, 92, 246, 0.35);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+  --bg-secondary: rgba(15, 15, 26, 0.85);
+  --bg-tertiary: rgba(26, 26, 42, 0.75);
+  --glass-bg: rgba(20, 20, 35, 0.65);
+  --glass-bg-hover: rgba(32, 32, 54, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-border-hover: rgba(139, 92, 246, 0.45);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
   
-  --border-color: rgba(255, 255, 255, 0.1);
-  --border-color-glow: rgba(139, 92, 246, 0.4);
+  --border-color: rgba(255, 255, 255, 0.12);
+  --border-color-glow: rgba(139, 92, 246, 0.5);
   --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-secondary: #cbd5e1; /* Increased contrast for WCAG AA readability */
+  --text-muted: #94a3b8;
   
   /* Brand & Category Accent Colors */
   --accent-purple: #8b5cf6;
   --accent-purple-hover: #a78bfa;
-  --accent-purple-alpha: rgba(139, 92, 246, 0.18);
+  --accent-purple-alpha: rgba(139, 92, 246, 0.22);
   --accent-cyan: #06b6d4;
-  --accent-cyan-alpha: rgba(6, 182, 212, 0.18);
+  --accent-cyan-alpha: rgba(6, 182, 212, 0.22);
   --accent-blue: #0ea5e9;
-  --accent-blue-alpha: rgba(14, 165, 233, 0.18);
+  --accent-blue-alpha: rgba(14, 165, 233, 0.22);
   --accent-indigo: #6366f1;
-  --accent-indigo-alpha: rgba(99, 102, 241, 0.18);
+  --accent-indigo-alpha: rgba(99, 102, 241, 0.22);
   
   /* Status Colors */
   --accent-green: #10b981;
-  --accent-green-alpha: rgba(16, 185, 129, 0.18);
+  --accent-green-alpha: rgba(16, 185, 129, 0.22);
   --accent-amber: #f59e0b;
-  --accent-amber-alpha: rgba(245, 158, 11, 0.18);
+  --accent-amber-alpha: rgba(245, 158, 11, 0.22);
   --accent-red: #ef4444;
-  --accent-red-alpha: rgba(239, 68, 68, 0.18);
+  --accent-red-alpha: rgba(239, 68, 68, 0.22);
   
   /* Typography */
   --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -54,14 +54,14 @@
   margin: 0;
   padding: 0;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
 
 body {
   background-color: var(--bg-primary);
   background-image: 
-    radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.08) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(6, 182, 212, 0.06) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.12) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(6, 182, 212, 0.08) 0px, transparent 50%);
   color: var(--text-primary);
   font-family: var(--font-sans);
   font-size: 13px;
@@ -85,11 +85,19 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.18);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--accent-purple-hover);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* Glassmorphic Components */
@@ -107,7 +115,7 @@ body {
 .glass-card:hover {
   border-color: var(--glass-border-hover);
   background: var(--glass-bg-hover);
-  box-shadow: 0 8px 32px 0 rgba(139, 92, 246, 0.15);
+  box-shadow: 0 8px 32px 0 rgba(139, 92, 246, 0.2);
   transform: translateY(-1px);
 }
 
@@ -131,7 +139,7 @@ body {
 }
 .card:hover {
   border-color: var(--accent-purple-hover);
-  box-shadow: 0 4px 24px rgba(139, 92, 246, 0.15);
+  box-shadow: 0 4px 24px rgba(139, 92, 246, 0.2);
 }
 
 /* Buttons */
@@ -169,15 +177,22 @@ body {
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--glass-border);
   color: var(--text-primary);
   box-shadow: none;
 }
 .btn-secondary:hover {
   border-color: var(--accent-purple);
-  background: rgba(139, 92, 246, 0.12);
+  background: rgba(139, 92, 246, 0.16);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.btn-active {
+  background: var(--accent-purple-alpha) !important;
+  border-color: var(--accent-purple) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.3) !important;
 }
 
 .btn-red {
@@ -200,12 +215,24 @@ body {
   50% { opacity: 1; transform: scale(1.05); }
 }
 
+@keyframes skeletonPulse {
+  0% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+  100% { opacity: 0.3; }
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
 .animate-fade-in {
   animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.skeleton-box {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  animation: skeletonPulse 1.5s ease-in-out infinite;
 }
 
 .spinner {
@@ -241,22 +268,22 @@ body {
 .badge-critical {
   background: var(--accent-red-alpha);
   color: #fca5a5;
-  border: 1px solid rgba(239, 68, 68, 0.35);
+  border: 1px solid rgba(239, 68, 68, 0.4);
 }
 .badge-warning {
   background: var(--accent-amber-alpha);
   color: #fcd34d;
-  border: 1px solid rgba(245, 158, 11, 0.35);
+  border: 1px solid rgba(245, 158, 11, 0.4);
 }
 .badge-info {
   background: var(--accent-purple-alpha);
   color: #c4b5fd;
-  border: 1px solid rgba(139, 92, 246, 0.35);
+  border: 1px solid rgba(139, 92, 246, 0.4);
 }
 .badge-success {
   background: var(--accent-green-alpha);
   color: #6ee7b7;
-  border: 1px solid rgba(16, 185, 129, 0.35);
+  border: 1px solid rgba(16, 185, 129, 0.4);
 }
 
 /* Form Styles */
@@ -286,7 +313,7 @@ body {
 }
 .form-control:focus {
   border-color: var(--accent-purple);
-  box-shadow: 0 0 12px rgba(139, 92, 246, 0.25);
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.3);
 }
 
 .switch {
@@ -307,7 +334,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.12);
   border: 1px solid var(--border-color);
   transition: var(--transition-smooth);
   border-radius: 34px;
@@ -369,7 +396,7 @@ input[type=range]::-webkit-slider-thumb:hover {
 
 /* Code Snippet Blocks */
 .code-block {
-  background: rgba(10, 10, 18, 0.85);
+  background: rgba(10, 10, 18, 0.9);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 10px 12px;

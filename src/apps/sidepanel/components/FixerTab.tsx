@@ -5,20 +5,34 @@ interface FixerTabProps {
   settings: FixerState;
   onSettingChange: (key: keyof Omit<FixerState, 'version' | 'typography' | 'lastUpdatedAt'>, value: any) => void;
   onTypographyChange: (key: string, value: any) => void;
+  onResetSettings?: () => void;
 }
 
 export const FixerTab: React.FC<FixerTabProps> = ({
   settings,
   onSettingChange,
   onTypographyChange,
+  onResetSettings,
 }) => {
   return (
     <div className="flex flex-col gap-4 animate-fade-in">
       {/* Overview Card */}
       <div className="glass-card flex flex-col gap-2" style={{ padding: 14 }}>
-        <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
-          🛠️ Page Fixer & Reading Comfort
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+            🛠️ Page Fixer & Reading Comfort
+          </h3>
+          {onResetSettings && (
+            <button
+              className="btn btn-secondary"
+              onClick={onResetSettings}
+              style={{ padding: '4px 8px', fontSize: 10 }}
+              title="Reset all settings to default values"
+            >
+              ↺ Reset
+            </button>
+          )}
+        </div>
         <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
           Apply real-time visual overrides to fix dark themes, typography readability, sticky banners, and distraction overlays.
         </p>

@@ -28,6 +28,7 @@ export const SidePanelApp: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<ScanProfileType>('full');
+  const [activeHighlightSelector, setActiveHighlightSelector] = useState<string | null>(null);
 
   useEffect(() => {
     // 1. Fetch active browser tab details
@@ -128,6 +129,12 @@ export const SidePanelApp: React.FC = () => {
     applySettings(nextState);
   };
 
+  const handleResetSettings = () => {
+    if (!tabId) return;
+    setSettings(DEFAULT_FIXER_STATE);
+    applySettings(DEFAULT_FIXER_STATE);
+  };
+
   const applySettings = (state: FixerState) => {
     if (!tabId) return;
     chrome.runtime.sendMessage({
@@ -138,10 +145,19 @@ export const SidePanelApp: React.FC = () => {
 
   const handleHighlight = (selector: string) => {
     if (!tabId || !selector) return;
-    chrome.runtime.sendMessage({
-      type: 'HIGHLIGHT_ISSUE',
-      payload: { tabId, selector },
-    });
+    if (activeHighlightSelector === selector) {
+      chrome.runtime.sendMessage({ type: 'CLEAR_HIGHLIGHT', payload: { tabId } });
+      setActiveHighlightSelector(null);
+    } else {
+      chrome.runtime.sendMessage(
+        { type: 'HIGHLIGHT_ISSUE', payload: { tabId, selector } },
+        (res) => {
+          if (res && res.success) {
+            setActiveHighlightSelector(selector);
+          }
+        }
+      );
+    }
   };
 
   const handleExport = (format: 'md' | 'json' | 'csv') => {
@@ -272,6 +288,7 @@ export const SidePanelApp: React.FC = () => {
             settings={settings}
             onSettingChange={handleToggleSetting}
             onTypographyChange={handleTypographyChange}
+            onResetSettings={handleResetSettings}
           />
         )}
 

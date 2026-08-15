@@ -4,9 +4,10 @@ import { AuditIssue } from '@shared/types';
 interface IssueCardProps {
   issue: AuditIssue;
   onHighlight?: (selector: string) => void;
+  isHighlighted?: boolean;
 }
 
-export const IssueCard: React.FC<IssueCardProps> = ({ issue, onHighlight }) => {
+export const IssueCard: React.FC<IssueCardProps> = ({ issue, onHighlight, isHighlighted = false }) => {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -30,7 +31,15 @@ export const IssueCard: React.FC<IssueCardProps> = ({ issue, onHighlight }) => {
   };
 
   return (
-    <div className="glass-card flex flex-col gap-2" style={{ borderRadius: 12, padding: 12, marginBottom: 10 }}>
+    <div
+      className={`glass-card flex flex-col gap-2 ${isHighlighted ? 'btn-active' : ''}`}
+      style={{
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 10,
+        borderColor: isHighlighted ? 'var(--accent-purple)' : undefined,
+      }}
+    >
       {/* Header Row */}
       <div className="flex items-start justify-between gap-2" style={{ cursor: 'pointer' }} onClick={() => setExpanded(!expanded)}>
         <div className="flex flex-col gap-1" style={{ flex: 1 }}>
@@ -69,7 +78,7 @@ export const IssueCard: React.FC<IssueCardProps> = ({ issue, onHighlight }) => {
           </code>
           {onHighlight && (
             <button
-              className="btn btn-secondary"
+              className={`btn ${isHighlighted ? 'btn-red' : 'btn-secondary'}`}
               onClick={(e) => {
                 e.stopPropagation();
                 onHighlight(primarySelector);
@@ -77,7 +86,7 @@ export const IssueCard: React.FC<IssueCardProps> = ({ issue, onHighlight }) => {
               style={{ padding: '4px 8px', fontSize: 10, borderRadius: 6 }}
               title="Highlight element on target page"
             >
-              📍 Spotlight
+              {isHighlighted ? '📍 Clear Spotlight' : '📍 Spotlight'}
             </button>
           )}
         </div>
