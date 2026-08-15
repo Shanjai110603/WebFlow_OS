@@ -39,14 +39,30 @@ export const ScoreGauge: React.FC<ScoreGaugeProps> = ({ scores, isAuditing }) =>
     <div
       className="glass-card flex flex-col items-center justify-center gap-3"
       style={{
+        width: '100%',
         padding: '16px 14px',
         marginBottom: 16,
-        background: 'linear-gradient(180deg, rgba(25, 25, 42, 0.7) 0%, rgba(15, 15, 26, 0.8) 100%)',
+        background: 'linear-gradient(180deg, rgba(25, 25, 42, 0.75) 0%, rgba(15, 15, 26, 0.85) 100%)',
       }}
     >
-      {/* Main Radial Gauge Ring */}
-      <div className="flex items-center justify-center" style={{ position: 'relative', width: size, height: size }}>
-        <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+      {/* Main Radial Gauge Ring Container (Perfect Centering) */}
+      <div
+        className="flex items-center justify-center"
+        style={{
+          position: 'relative',
+          width: size,
+          height: size,
+          margin: '0 auto',
+        }}
+      >
+        <svg
+          width={size}
+          height={size}
+          style={{
+            transform: 'rotate(-90deg)',
+            display: 'block',
+          }}
+        >
           <defs>
             <linearGradient id="scoreGreenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#10b981" />
@@ -90,12 +106,19 @@ export const ScoreGauge: React.FC<ScoreGaugeProps> = ({ scores, isAuditing }) =>
           />
         </svg>
 
-        {/* Central Score Display */}
+        {/* Central Score Display Overlay (Exact 100% Inset Centering) */}
         <div
           className="flex flex-col items-center justify-center"
           style={{
             position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100%',
+            height: '100%',
             textAlign: 'center',
+            pointerEvents: 'none',
           }}
         >
           <span
