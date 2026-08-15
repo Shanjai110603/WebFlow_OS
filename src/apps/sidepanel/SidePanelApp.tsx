@@ -252,6 +252,7 @@ export const SidePanelApp: React.FC = () => {
         scanProfile={selectedProfile}
         onProfileChange={setSelectedProfile}
         onReAudit={handleRunScan}
+        onGenerateReport={handleExport}
         isAuditing={scanning}
       />
 
@@ -264,7 +265,12 @@ export const SidePanelApp: React.FC = () => {
       {/* Tab View Container */}
       <main className="flex-1">
         {activeTab === 'overview' && (
-          <DashboardTab session={session} onHighlight={handleHighlight} onTabChange={setActiveTab} />
+          <DashboardTab
+            session={session}
+            onHighlight={handleHighlight}
+            onTabChange={setActiveTab}
+            onGenerateReport={handleExport}
+          />
         )}
 
         {activeTab === 'privacy-security' && (

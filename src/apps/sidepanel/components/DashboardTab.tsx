@@ -6,12 +6,14 @@ interface DashboardTabProps {
   session: AuditSession | null;
   onHighlight: (selector: string) => void;
   onTabChange: (tab: any) => void;
+  onGenerateReport?: (format: 'md' | 'json' | 'csv') => void;
 }
 
 export const DashboardTab: React.FC<DashboardTabProps> = ({
   session,
   onHighlight,
   onTabChange,
+  onGenerateReport,
 }) => {
   if (!session) {
     return (
@@ -98,6 +100,34 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
           </p>
         </div>
       </div>
+
+      {/* Generate Report Banner Card */}
+      {onGenerateReport && (
+        <div
+          className="glass-card flex items-center justify-between gap-3"
+          style={{
+            padding: 14,
+            background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.25) 0%, rgba(6, 182, 212, 0.15) 100%)',
+            border: '1px solid rgba(139, 92, 246, 0.4)',
+          }}
+        >
+          <div>
+            <h3 style={{ fontSize: 13, fontWeight: 700, color: '#ffffff' }}>📄 Comprehensive Audit Report</h3>
+            <p style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+              Export formatted findings, accessibility tables, and security logs.
+            </p>
+          </div>
+          <div className="flex gap-1">
+            <button
+              className="btn"
+              onClick={() => onGenerateReport('md')}
+              style={{ padding: '7px 12px', fontSize: 11 }}
+            >
+              Generate Report
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Page Structural Stats Grid */}
       {insights && (

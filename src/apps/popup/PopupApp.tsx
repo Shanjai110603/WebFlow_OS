@@ -152,6 +152,28 @@ export const PopupApp: React.FC = () => {
     }
   }
 
+  const handleGenerateReport = () => {
+    if (!session) {
+      alert('Please run a page audit first.');
+      return;
+    }
+    chrome.runtime.sendMessage(
+      { type: 'EXPORT_REPORT', payload: { id: session.id, format: 'md' } },
+      (res) => {
+        if (res && res.success && res.data) {
+          const blob = new Blob([res.data], { type: 'text/markdown' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `weblens-report-${session.page.domain}.md`;
+          a.click();
+        } else {
+          alert('Failed to generate report.');
+        }
+      }
+    );
+  };
+
   return (
     <div
       className="flex flex-col animate-fade-in"
@@ -376,19 +398,28 @@ export const PopupApp: React.FC = () => {
       <div className="flex gap-2" style={{ marginTop: 2 }}>
         <button
           className="btn btn-secondary"
+          onClick={handleGenerateReport}
+          disabled={!session}
+          style={{ flex: 1, padding: '9px 8px', fontSize: 10 }}
+        >
+          📄 Report
+        </button>
+
+        <button
+          className="btn btn-secondary"
           onClick={handleRunAudit}
           disabled={auditing}
-          style={{ flex: 1, padding: '9px 10px', fontSize: 11 }}
+          style={{ flex: 1, padding: '9px 8px', fontSize: 10 }}
         >
-          {auditing ? '⚡ Auditing...' : '⚡ Audit Page'}
+          {auditing ? '⚡ Scan...' : '⚡ Audit'}
         </button>
 
         <button
           className="btn"
           onClick={handleOpenSidePanel}
-          style={{ flex: 1.4, padding: '9px 10px', fontSize: 11 }}
+          style={{ flex: 1.2, padding: '9px 8px', fontSize: 10 }}
         >
-          <span>🛠️</span> Open Workspace
+          <span>🛠️</span> Workspace
         </button>
       </div>
     </div>

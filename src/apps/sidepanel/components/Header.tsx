@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ScanProfileType } from '@shared/types';
 
 interface HeaderProps {
@@ -7,6 +7,7 @@ interface HeaderProps {
   scanProfile: ScanProfileType;
   onProfileChange: (profile: ScanProfileType) => void;
   onReAudit: () => void;
+  onGenerateReport?: (format: 'md' | 'json' | 'csv') => void;
   isAuditing: boolean;
 }
 
@@ -16,8 +17,10 @@ export const Header: React.FC<HeaderProps> = ({
   scanProfile,
   onProfileChange,
   onReAudit,
+  onGenerateReport,
   isAuditing,
 }) => {
+  const [showReportMenu, setShowReportMenu] = useState(false);
   const isSecure = url.startsWith('https:');
 
   return (
@@ -77,28 +80,30 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Security Indicator Pill */}
-        {isSecure ? (
-          <span className="badge badge-success" style={{ fontSize: 10 }}>
-            🔒 HTTPS
-          </span>
-        ) : (
-          <span className="badge badge-critical" style={{ fontSize: 10 }}>
-            ⚠️ HTTP
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Security Indicator Pill */}
+          {isSecure ? (
+            <span className="badge badge-success" style={{ fontSize: 10 }}>
+              🔒 HTTPS
+            </span>
+          ) : (
+            <span className="badge badge-critical" style={{ fontSize: 10 }}>
+              ⚠️ HTTP
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Controls Bar: Preset & Audit Button */}
-      <div className="flex items-center gap-2">
+      {/* Controls Bar: Preset, Report Generator & Audit Button */}
+      <div className="flex items-center gap-2" style={{ position: 'relative' }}>
         <select
           value={scanProfile}
           onChange={(e) => onProfileChange(e.target.value as ScanProfileType)}
           className="form-control"
           style={{
             flex: 1,
-            padding: '7px 10px',
-            fontSize: 12,
+            padding: '7px 8px',
+            fontSize: 11,
             background: 'rgba(15, 15, 26, 0.8)',
             border: '1px solid rgba(255, 255, 255, 0.12)',
             borderRadius: 8,
@@ -113,13 +118,77 @@ export const Header: React.FC<HeaderProps> = ({
           <option value="ux">📖 UX & Readability Profile</option>
         </select>
 
+        {onGenerateReport && (
+          <div style={{ position: 'relative' }}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => setShowReportMenu(!showReportMenu)}
+              style={{
+                padding: '7px 10px',
+                fontSize: 11,
+                borderRadius: 8,
+                whiteSpace: 'nowrap',
+              }}
+              title="Generate Audit Report"
+            >
+              📄 Report ▼
+            </button>
+
+            {showReportMenu && (
+              <div
+                className="glass-card flex flex-col gap-1 animate-fade-in"
+                style={{
+                  position: 'absolute',
+                  top: '110%',
+                  right: 0,
+                  zIndex: 100,
+                  minWidth: 160,
+                  padding: 6,
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.6)',
+                }}
+              >
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    onGenerateReport('md');
+                    setShowReportMenu(false);
+                  }}
+                  style={{ justifyContent: 'flex-start', padding: '6px 10px', fontSize: 11 }}
+                >
+                  📝 Markdown (.md)
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    onGenerateReport('csv');
+                    setShowReportMenu(false);
+                  }}
+                  style={{ justifyContent: 'flex-start', padding: '6px 10px', fontSize: 11 }}
+                >
+                  📊 CSV Spreadsheet
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    onGenerateReport('json');
+                    setShowReportMenu(false);
+                  }}
+                  style={{ justifyContent: 'flex-start', padding: '6px 10px', fontSize: 11 }}
+                >
+                  ⚙️ Raw JSON
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         <button
           className="btn"
           onClick={onReAudit}
           disabled={isAuditing}
           style={{
-            padding: '7px 14px',
-            fontSize: 12,
+            padding: '7px 12px',
+            fontSize: 11,
             borderRadius: 8,
             whiteSpace: 'nowrap',
           }}
