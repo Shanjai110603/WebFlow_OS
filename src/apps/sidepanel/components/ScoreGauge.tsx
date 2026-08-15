@@ -8,9 +8,9 @@ interface ScoreGaugeProps {
 
 export const ScoreGauge: React.FC<ScoreGaugeProps> = ({ scores, isAuditing }) => {
   const overall = scores?.overall ?? 0;
-  const size = 126;
-  const strokeWidth = 9;
-  const radius = (size - strokeWidth) / 2 - 4;
+  const size = 130;
+  const strokeWidth = 10;
+  const radius = (size - strokeWidth) / 2 - 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = scores ? circumference - (overall / 100) * circumference : circumference;
 
@@ -37,21 +37,25 @@ export const ScoreGauge: React.FC<ScoreGaugeProps> = ({ scores, isAuditing }) =>
 
   return (
     <div
-      className="glass-card flex flex-col items-center justify-center gap-3"
+      className="glass-card flex flex-col items-center justify-center gap-4"
       style={{
         width: '100%',
-        padding: '16px 14px',
+        padding: '18px 14px 14px 14px',
         marginBottom: 16,
-        background: 'linear-gradient(180deg, rgba(25, 25, 42, 0.75) 0%, rgba(15, 15, 26, 0.85) 100%)',
+        background: 'linear-gradient(180deg, rgba(22, 22, 38, 0.8) 0%, rgba(14, 14, 24, 0.9) 100%)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: 16,
       }}
     >
-      {/* Main Radial Gauge Ring Container (Perfect Centering) */}
+      {/* Radial Gauge Container (Exact Geometric Centering) */}
       <div
-        className="flex items-center justify-center"
         style={{
           position: 'relative',
           width: size,
           height: size,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           margin: '0 auto',
         }}
       >
@@ -78,12 +82,20 @@ export const ScoreGauge: React.FC<ScoreGaugeProps> = ({ scores, isAuditing }) =>
             </linearGradient>
           </defs>
 
+          {/* Inner Fill Backdrop Circle */}
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="rgba(255, 255, 255, 0.02)"
+          />
+
           {/* Background Track Circle */}
           <circle
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke="rgba(255, 255, 255, 0.07)"
+            stroke="rgba(255, 255, 255, 0.08)"
             strokeWidth={strokeWidth}
             fill="transparent"
           />
@@ -106,30 +118,34 @@ export const ScoreGauge: React.FC<ScoreGaugeProps> = ({ scores, isAuditing }) =>
           />
         </svg>
 
-        {/* Central Score Display Overlay (Exact 100% Inset Centering) */}
+        {/* Central Score Digit & Status Overlay */}
         <div
-          className="flex flex-col items-center justify-center"
           style={{
             position: 'absolute',
             top: 0,
             left: 0,
-            right: 0,
-            bottom: 0,
-            width: '100%',
-            height: '100%',
+            width: size,
+            height: size,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
             textAlign: 'center',
             pointerEvents: 'none',
+            margin: 0,
+            padding: 0,
           }}
         >
           <span
             style={{
               fontFamily: 'var(--font-heading)',
-              fontSize: 34,
+              fontSize: 36,
               fontWeight: 800,
               color: scores ? '#ffffff' : 'var(--text-muted)',
-              lineHeight: 1,
+              lineHeight: 0.9,
               letterSpacing: '-1px',
               textShadow: scores ? `0 0 20px ${glowColor}` : 'none',
+              marginTop: 2,
             }}
           >
             {isAuditing ? '...' : scores ? overall : '--'}
@@ -140,13 +156,14 @@ export const ScoreGauge: React.FC<ScoreGaugeProps> = ({ scores, isAuditing }) =>
                 fontSize: 9,
                 fontWeight: 800,
                 textTransform: 'uppercase',
-                letterSpacing: 0.6,
-                marginTop: 4,
-                padding: '2px 7px',
+                letterSpacing: 0.5,
+                marginTop: 6,
+                padding: '2px 8px',
                 borderRadius: 10,
                 background: badgeBg,
                 color: badgeColor,
                 border: `1px solid ${statusColor}44`,
+                lineHeight: 1.2,
               }}
             >
               {statusLabel}
@@ -158,10 +175,10 @@ export const ScoreGauge: React.FC<ScoreGaugeProps> = ({ scores, isAuditing }) =>
       {/* Category Chips 5-Column Grid */}
       {scores && (
         <div
-          className="grid grid-cols-5 gap-1"
+          className="grid grid-cols-5 gap-2"
           style={{
             width: '100%',
-            paddingTop: 10,
+            paddingTop: 12,
             borderTop: '1px solid rgba(255, 255, 255, 0.08)',
           }}
         >
@@ -169,17 +186,18 @@ export const ScoreGauge: React.FC<ScoreGaugeProps> = ({ scores, isAuditing }) =>
             className="flex flex-col items-center justify-center"
             style={{
               background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
               borderRadius: 8,
-              padding: '5px 2px',
+              padding: '6px 2px',
             }}
           >
-            <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600 }}>ACC</span>
+            <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.3px' }}>ACC</span>
             <span
               style={{
                 fontSize: 12,
                 fontWeight: 800,
                 color: scores.accessibility >= 80 ? 'var(--accent-green)' : scores.accessibility >= 50 ? 'var(--accent-amber)' : 'var(--accent-red)',
+                marginTop: 2,
               }}
             >
               {scores.accessibility}
@@ -190,17 +208,18 @@ export const ScoreGauge: React.FC<ScoreGaugeProps> = ({ scores, isAuditing }) =>
             className="flex flex-col items-center justify-center"
             style={{
               background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
               borderRadius: 8,
-              padding: '5px 2px',
+              padding: '6px 2px',
             }}
           >
-            <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600 }}>PRIV</span>
+            <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.3px' }}>PRIV</span>
             <span
               style={{
                 fontSize: 12,
                 fontWeight: 800,
                 color: scores.privacy >= 80 ? 'var(--accent-green)' : scores.privacy >= 50 ? 'var(--accent-amber)' : 'var(--accent-red)',
+                marginTop: 2,
               }}
             >
               {scores.privacy}
@@ -211,17 +230,18 @@ export const ScoreGauge: React.FC<ScoreGaugeProps> = ({ scores, isAuditing }) =>
             className="flex flex-col items-center justify-center"
             style={{
               background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
               borderRadius: 8,
-              padding: '5px 2px',
+              padding: '6px 2px',
             }}
           >
-            <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600 }}>SEC</span>
+            <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.3px' }}>SEC</span>
             <span
               style={{
                 fontSize: 12,
                 fontWeight: 800,
                 color: scores.security >= 80 ? 'var(--accent-green)' : scores.security >= 50 ? 'var(--accent-amber)' : 'var(--accent-red)',
+                marginTop: 2,
               }}
             >
               {scores.security}
@@ -232,17 +252,18 @@ export const ScoreGauge: React.FC<ScoreGaugeProps> = ({ scores, isAuditing }) =>
             className="flex flex-col items-center justify-center"
             style={{
               background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
               borderRadius: 8,
-              padding: '5px 2px',
+              padding: '6px 2px',
             }}
           >
-            <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600 }}>SEO</span>
+            <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.3px' }}>SEO</span>
             <span
               style={{
                 fontSize: 12,
                 fontWeight: 800,
                 color: scores.seo >= 80 ? 'var(--accent-green)' : scores.seo >= 50 ? 'var(--accent-amber)' : 'var(--accent-red)',
+                marginTop: 2,
               }}
             >
               {scores.seo}
@@ -253,17 +274,18 @@ export const ScoreGauge: React.FC<ScoreGaugeProps> = ({ scores, isAuditing }) =>
             className="flex flex-col items-center justify-center"
             style={{
               background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
               borderRadius: 8,
-              padding: '5px 2px',
+              padding: '6px 2px',
             }}
           >
-            <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600 }}>UX</span>
+            <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.3px' }}>UX</span>
             <span
               style={{
                 fontSize: 12,
                 fontWeight: 800,
                 color: scores.ux >= 80 ? 'var(--accent-green)' : scores.ux >= 50 ? 'var(--accent-amber)' : 'var(--accent-red)',
+                marginTop: 2,
               }}
             >
               {scores.ux}
