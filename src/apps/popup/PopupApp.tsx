@@ -288,7 +288,7 @@ export const PopupApp: React.FC = () => {
 
         {/* Quick Category Chips Preview */}
         {session?.scores && (
-          <div className="grid grid-cols-5 gap-1" style={{ paddingTop: 8, borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <div className="grid grid-cols-6 gap-1" style={{ paddingTop: 8, borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
             <div className="flex flex-col items-center justify-center" style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: 6, padding: '3px 1px' }}>
               <span style={{ fontSize: 8, color: 'var(--text-secondary)' }}>ACC</span>
               <span style={{ fontSize: 10, fontWeight: 800, color: session.scores.accessibility >= 80 ? 'var(--accent-green)' : 'var(--accent-amber)' }}>
@@ -314,6 +314,13 @@ export const PopupApp: React.FC = () => {
               <span style={{ fontSize: 8, color: 'var(--text-secondary)' }}>SEO</span>
               <span style={{ fontSize: 10, fontWeight: 800, color: session.scores.seo >= 80 ? 'var(--accent-green)' : 'var(--accent-amber)' }}>
                 {session.scores.seo}
+              </span>
+            </div>
+
+            <div className="flex flex-col items-center justify-center" style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: 6, padding: '3px 1px' }}>
+              <span style={{ fontSize: 8, color: 'var(--text-secondary)' }}>PERF</span>
+              <span style={{ fontSize: 10, fontWeight: 800, color: (session.scores.performance ?? 100) >= 80 ? 'var(--accent-green)' : (session.scores.performance ?? 100) >= 50 ? 'var(--accent-amber)' : 'var(--accent-red)' }}>
+                {session.scores.performance ?? 100}
               </span>
             </div>
 

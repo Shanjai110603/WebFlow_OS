@@ -3,12 +3,12 @@ import { AuditRule, RawIssue, ScanContext } from '../../shared/types';
 export const UnsizedMediaClsRule: AuditRule = {
   id: 'unsized-media-cls',
   name: 'Unsized Media Elements (CLS Risk)',
-  category: 'ux',
+  category: 'performance',
   severityDefault: 'warning',
-  scoreImpact: 10,
+  scoreImpact: 15,
   async run(context: ScanContext): Promise<RawIssue[]> {
     const doc = context.document;
-    const mediaEls = Array.from(doc.querySelectorAll('img, iframe'));
+    const mediaEls = Array.from(doc.querySelectorAll<HTMLElement>('img, iframe'));
     const issues: RawIssue[] = [];
 
     let count = 0;
@@ -25,7 +25,7 @@ export const UnsizedMediaClsRule: AuditRule = {
 
         issues.push({
           id: `cls-unsized-${tag}-${count}`,
-          engine: 'ux',
+          engine: 'performance',
           ruleId: 'unsized-media-cls',
           severity: 'warning',
           locator: {
@@ -47,12 +47,12 @@ export const UnsizedMediaClsRule: AuditRule = {
 export const RenderBlockingScriptsRule: AuditRule = {
   id: 'render-blocking-scripts',
   name: 'Render-Blocking Scripts in Head',
-  category: 'ux',
+  category: 'performance',
   severityDefault: 'warning',
-  scoreImpact: 10,
+  scoreImpact: 15,
   async run(context: ScanContext): Promise<RawIssue[]> {
     const doc = context.document;
-    const headScripts = Array.from(doc.querySelectorAll('head script[src]'));
+    const headScripts = Array.from(doc.querySelectorAll<HTMLScriptElement>('head script[src]'));
     const issues: RawIssue[] = [];
 
     let count = 0;
@@ -67,7 +67,7 @@ export const RenderBlockingScriptsRule: AuditRule = {
         const src = script.getAttribute('src') || '';
         issues.push({
           id: `render-blocking-script-${count}`,
-          engine: 'ux',
+          engine: 'performance',
           ruleId: 'render-blocking-scripts',
           severity: 'warning',
           locator: {
@@ -89,9 +89,9 @@ export const RenderBlockingScriptsRule: AuditRule = {
 export const ExcessiveDomBudgetRule: AuditRule = {
   id: 'excessive-dom-budget',
   name: 'Excessive DOM Size & Tree Density',
-  category: 'ux',
+  category: 'performance',
   severityDefault: 'warning',
-  scoreImpact: 15,
+  scoreImpact: 20,
   async run(context: ScanContext): Promise<RawIssue[]> {
     const doc = context.document;
     const totalElements = doc.querySelectorAll('*').length;
@@ -99,7 +99,7 @@ export const ExcessiveDomBudgetRule: AuditRule = {
     if (totalElements > 1000) {
       return [{
         id: 'excessive-dom-budget-issue',
-        engine: 'ux',
+        engine: 'performance',
         ruleId: 'excessive-dom-budget',
         severity: totalElements > 2000 ? 'critical' : 'warning',
         message: `High DOM node density (${totalElements} elements). Excessive DOM size increases memory usage and degrades layout recalculation speed.`,
@@ -116,12 +116,12 @@ export const ExcessiveDomBudgetRule: AuditRule = {
 export const LazyLoadingImagesRule: AuditRule = {
   id: 'lazy-loading-images',
   name: 'Offscreen Images Missing Lazy Loading',
-  category: 'ux',
+  category: 'performance',
   severityDefault: 'info',
-  scoreImpact: 5,
+  scoreImpact: 10,
   async run(context: ScanContext): Promise<RawIssue[]> {
     const doc = context.document;
-    const images = Array.from(doc.querySelectorAll('img'));
+    const images = Array.from(doc.querySelectorAll<HTMLImageElement>('img'));
     const issues: RawIssue[] = [];
 
     if (images.length > 5) {
@@ -129,7 +129,7 @@ export const LazyLoadingImagesRule: AuditRule = {
       if (nonLazyImages.length > 3) {
         issues.push({
           id: 'lazy-loading-images-issue',
-          engine: 'ux',
+          engine: 'performance',
           ruleId: 'lazy-loading-images',
           severity: 'info',
           message: `${nonLazyImages.length} images are loaded eagerly without \`loading="lazy"\`. Non-critical offscreen images should be deferred.`,

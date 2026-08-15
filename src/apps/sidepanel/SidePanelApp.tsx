@@ -10,6 +10,7 @@ import { PrivacySecurityTab } from './components/PrivacySecurityTab';
 import { SeoHealthTab } from './components/SeoHealthTab';
 import { AccessibilityTab } from './components/AccessibilityTab';
 import { ReadabilityTab } from './components/ReadabilityTab';
+import { PerformanceTab } from './components/PerformanceTab';
 import { FixerTab } from './components/FixerTab';
 import { HistoryCompareTab } from './components/HistoryCompareTab';
 
@@ -274,6 +275,7 @@ export const SidePanelApp: React.FC = () => {
     privacySecurity: session ? session.issues.filter((i) => i.category === 'privacy' || i.category === 'security').length : 0,
     seo: session ? session.issues.filter((i) => i.category === 'seo').length : 0,
     accessibility: session ? session.issues.filter((i) => i.category === 'accessibility').length : 0,
+    performance: session ? session.issues.filter((i) => i.category === 'performance' || i.ruleId.includes('cls') || i.ruleId.includes('script') || i.ruleId.includes('dom') || i.ruleId.includes('lazy')).length : 0,
     ux: session ? session.issues.filter((i) => i.category === 'ux' || i.category === 'readability').length : 0,
   };
 
@@ -317,6 +319,10 @@ export const SidePanelApp: React.FC = () => {
 
         {activeTab === 'accessibility' && (
           <AccessibilityTab session={session} onHighlight={handleHighlight} />
+        )}
+
+        {activeTab === 'performance' && (
+          <PerformanceTab session={session} onHighlight={handleHighlight} />
         )}
 
         {activeTab === 'ux' && (

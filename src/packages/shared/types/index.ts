@@ -1,7 +1,40 @@
+export interface ScanContext {
+  document: Document;
+  window: Window;
+  url?: string;
+  domain?: string;
+  resources?: ResourceSummary[];
+}
+
+export interface AuditRule {
+  id: string;
+  name: string;
+  category: 'accessibility' | 'privacy' | 'ux' | 'readability' | 'security' | 'seo' | 'performance';
+  severityDefault: 'critical' | 'warning' | 'info';
+  scoreImpact: number;
+  run: (context: ScanContext) => Promise<RawIssue[]>;
+}
+
+export interface IssueMatchResult {
+  matched: boolean;
+  confidence: number;
+  reason: 'selector' | 'xpath' | 'dompath' | 'text-similarity' | 'none';
+}
+
+export interface StickyCandidate {
+  element: HTMLElement;
+  reasons: string[];
+  score: number;
+  areaRatio: number;
+  zIndex: number;
+  fixedOrSticky: boolean;
+  likelyBlocking: boolean;
+}
+
 // --- A. Raw Scan Model ---
 export interface RawIssue {
   id: string; // Hash of ruleId + selector/evidence
-  engine: 'accessibility' | 'privacy' | 'readability' | 'ux' | 'security' | 'seo';
+  engine: 'accessibility' | 'privacy' | 'readability' | 'ux' | 'security' | 'seo' | 'performance';
   ruleId: string;
   severity: 'critical' | 'warning' | 'info';
   locator?: IssueLocator;
@@ -28,7 +61,7 @@ export interface IssueLocator {
 export interface AuditIssue {
   id: string;
   ruleId: string;
-  category: 'accessibility' | 'privacy' | 'ux' | 'readability' | 'security' | 'seo';
+  category: 'accessibility' | 'privacy' | 'ux' | 'readability' | 'security' | 'seo' | 'performance';
   subcategory: string;
   severity: 'critical' | 'warning' | 'info';
   title: string;
@@ -43,7 +76,7 @@ export interface AuditIssue {
   quickFixPreviewSelector?: string;
 }
 
-export type ScanProfileType = 'quick' | 'full' | 'accessibility' | 'privacy' | 'ux' | 'security' | 'seo' | 'developer' | 'summary';
+export type ScanProfileType = 'quick' | 'full' | 'accessibility' | 'privacy' | 'ux' | 'security' | 'seo' | 'performance' | 'developer' | 'summary';
 
 export interface PageInsights {
   headingsCount: Record<'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6', number>;
@@ -155,8 +188,15 @@ export interface DeductionRecord {
   totalDeducted: number;
 }
 
+export interface CategoryPolicy {
+  category: 'accessibility' | 'privacy' | 'ux' | 'security' | 'seo' | 'performance';
+  startingScore: number;
+  maxDeductionCap: number;
+  deductionWeights: Record<string, number>;
+}
+
 export interface ScoreExplanation {
-  category: 'accessibility' | 'privacy' | 'ux' | 'security' | 'seo';
+  category: 'accessibility' | 'privacy' | 'ux' | 'security' | 'seo' | 'performance';
   startingScore: number;
   deductions: DeductionRecord[];
   finalScore: number;
@@ -169,12 +209,14 @@ export interface ScoreBreakdown {
   ux: number;
   security: number;
   seo: number;
+  performance: number;
   explanations: {
     accessibility: ScoreExplanation;
     privacy: ScoreExplanation;
     ux: ScoreExplanation;
     security: ScoreExplanation;
     seo: ScoreExplanation;
+    performance: ScoreExplanation;
   };
 }
 
@@ -198,131 +240,54 @@ export interface ComparisonReport {
     ux: ScoreDelta;
     security: ScoreDelta;
     seo: ScoreDelta;
+    performance: ScoreDelta;
   };
-  resolvedIssues: AuditIssue[];
-  newIssues: AuditIssue[];
-  persistentIssues: AuditIssue[];
   insightsDelta?: {
     trackersDifference: number;
     unlabeledFormsDifference: number;
   };
-  matchConfidence?: 'strong' | 'weak';
+  newIssues: AuditIssue[];
+  resolvedIssues: AuditIssue[];
+  persistentIssues: AuditIssue[];
+  matchConfidence?: 'high' | 'medium' | 'low';
 }
 
-export interface IssueMatchResult {
-  matched: boolean;
-  confidence: number; // 0.0 to 1.0
-  reason: 'selector' | 'xpath' | 'dompath' | 'text-similarity' | 'none';
-}
-
-// --- H. Error Payload Model ---
-export interface ErrorPayload {
-  code: 'SCAN_FAILED' | 'STORAGE_CORRUPTED' | 'MESSAGING_TIMEOUT' | 'EXPORT_FAILED' | 'HIGHLIGHT_FAILED';
-  message: string;
-  timestamp: number;
-  context?: Record<string, unknown>;
-  recoverable: boolean;
-}
-
-// --- I. Missing Platform & Domain Types ---
-export interface CategoryPolicy {
-  category: 'accessibility' | 'privacy' | 'ux' | 'security' | 'seo';
-  startingScore: number;
-  maxDeductionCap: number;
-  deductionWeights: Record<string, number>;
-}
-
-export interface ScanContext {
-  document: Document;
-  window: Window;
-  resources: ResourceSummary[];
-}
-
-export interface AuditRule {
-  id: string;
-  name: string;
-  category: 'accessibility' | 'privacy' | 'readability' | 'ux' | 'security' | 'seo';
-  severityDefault: 'critical' | 'warning' | 'info';
-  scoreImpact: number;
-  run(context: ScanContext): Promise<RawIssue[]>;
-}
-
-export interface StickyCandidate {
-  element: HTMLElement;
-  reasons: string[];
-  score: number;
-  areaRatio: number;
-  zIndex: number;
-  fixedOrSticky: boolean;
-  likelyBlocking: boolean;
-}
-
-export interface CommandError {
-  code:
-    | 'MESSAGING_TIMEOUT'
-    | 'INVALID_PAYLOAD'
-    | 'UNKNOWN_COMMAND'
-    | 'STORAGE_CORRUPTED'
-    | 'SCAN_FAILED'
-    | 'EXPORT_FAILED'
-    | 'HIGHLIGHT_FAILED'
-    | 'CONTENT_SCRIPT_UNAVAILABLE'
-    | 'PERMISSION_DENIED';
-  message: string;
-  context?: Record<string, unknown>;
-}
-
-export type CommandResponse<T> =
-  | { success: true; data: T }
-  | { success: false; error: CommandError };
+// --- H. Extension Chrome Message Contract ---
+export type ExtensionActionType =
+  | 'RUN_AUDIT'
+  | 'GET_AUDIT'
+  | 'APPLY_FIXER_SETTINGS'
+  | 'GET_FIXER_SETTINGS'
+  | 'HIGHLIGHT_ISSUE'
+  | 'CLEAR_HIGHLIGHT'
+  | 'LOAD_HISTORY'
+  | 'DELETE_HISTORY'
+  | 'PIN_HISTORY'
+  | 'COMPARE_AUDITS'
+  | 'EXPORT_REPORT'
+  | 'SAVE_ANNOTATION';
 
 export interface CommandMap {
-  RUN_AUDIT: {
-    payload: { tabId: number; scanProfile?: ScanProfileType };
-    response: AuditSession;
-  };
-  GET_AUDIT: {
-    payload: { tabId: number };
-    response: AuditSession | null;
-  };
-  APPLY_FIXER_SETTINGS: {
-    payload: { tabId: number; settings: FixerState };
-    response: void;
-  };
-  GET_FIXER_SETTINGS: {
-    payload: { tabId: number };
-    response: FixerState;
-  };
-  HIGHLIGHT_ISSUE: {
-    payload: { tabId: number; selector: string };
-    response: void;
-  };
-  CLEAR_HIGHLIGHT: {
-    payload: { tabId: number };
-    response: void;
-  };
-  LOAD_HISTORY: {
-    payload: Record<string, never>;
-    response: AuditSession[];
-  };
-  DELETE_HISTORY: {
-    payload: { id: string };
-    response: void;
-  };
-  PIN_HISTORY: {
-    payload: { id: string; pinned: boolean };
-    response: void;
-  };
-  COMPARE_AUDITS: {
-    payload: { idA: string; idB: string };
-    response: ComparisonReport;
-  };
-  EXPORT_REPORT: {
-    payload: { id: string; format: 'md' | 'json' | 'csv' };
-    response: string;
-  };
-  SAVE_ANNOTATION: {
-    payload: { id: string; notes: string };
-    response: void;
+  RUN_AUDIT: { tabId: number; scanProfile?: ScanProfileType };
+  GET_AUDIT: { tabId: number };
+  APPLY_FIXER_SETTINGS: { tabId: number; settings: FixerState };
+  GET_FIXER_SETTINGS: { tabId: number };
+  HIGHLIGHT_ISSUE: { tabId: number; selector: string };
+  CLEAR_HIGHLIGHT: { tabId: number };
+  LOAD_HISTORY: Record<string, never>;
+  DELETE_HISTORY: { id: string };
+  PIN_HISTORY: { id: string; pinned: boolean };
+  COMPARE_AUDITS: { idA: string; idB: string };
+  EXPORT_REPORT: { id: string; tabId?: number; session?: AuditSession; format: 'pdf' | 'md' | 'json' | 'csv' };
+  SAVE_ANNOTATION: { id: string; notes: string };
+}
+
+export interface CommandResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: string;
+    message: string;
+    context?: Record<string, unknown>;
   };
 }

@@ -15,7 +15,6 @@ export class ScoringEngine {
     );
 
     // 2. Calculate Privacy
-    // Privacy is computed using both DOM checks and request metrics
     const privacyIssues = rawIssues.filter(r => r.engine === 'privacy');
     const privacyExplanation = ScoringEngine.calculatePrivacy(
       privacyIssues,
@@ -42,14 +41,21 @@ export class ScoringEngine {
       rawIssues.filter(r => r.engine === 'seo')
     );
 
-    // 6. Compute Overall Score
+    // 6. Calculate Performance & Core Web Vitals
+    const performanceExplanation = ScoringEngine.calculateCategory(
+      'performance',
+      rawIssues.filter(r => r.engine === 'performance')
+    );
+
+    // 7. Compute Overall Score
     const overall = Math.round(
       (accessibilityExplanation.finalScore +
         privacyExplanation.finalScore +
         uxExplanation.finalScore +
         securityExplanation.finalScore +
-        seoExplanation.finalScore) /
-        5
+        seoExplanation.finalScore +
+        performanceExplanation.finalScore) /
+        6
     );
 
     return {
@@ -59,18 +65,20 @@ export class ScoringEngine {
       ux: uxExplanation.finalScore,
       security: securityExplanation.finalScore,
       seo: seoExplanation.finalScore,
+      performance: performanceExplanation.finalScore,
       explanations: {
         accessibility: accessibilityExplanation,
         privacy: privacyExplanation,
         ux: uxExplanation,
         security: securityExplanation,
-        seo: seoExplanation
+        seo: seoExplanation,
+        performance: performanceExplanation
       }
     };
   }
 
   private static calculateCategory(
-    category: 'accessibility' | 'ux' | 'security' | 'seo',
+    category: 'accessibility' | 'ux' | 'security' | 'seo' | 'performance',
     issues: RawIssue[]
   ): ScoreExplanation {
     const policy = SCORING_POLICIES[category];
@@ -85,7 +93,7 @@ export class ScoringEngine {
     let totalDeducted = 0;
 
     for (const [ruleId, count] of Object.entries(deductionsMap)) {
-      const weight = policy.deductionWeights[ruleId] || 5;
+      const weight = policy ? policy.deductionWeights[ruleId] || 5 : 5;
       const pointsDeducted = count * weight;
       totalDeducted += pointsDeducted;
 
@@ -99,16 +107,17 @@ export class ScoringEngine {
 
     // Apply PageSpeed non-linear diminishing returns penalty curve:
     // Penalty = Cap * (1 - e^(-totalDeducted / Cap))
-    const cap = policy.maxDeductionCap;
+    const cap = policy ? policy.maxDeductionCap : 60;
     const effectiveDeduction = totalDeducted > 0
       ? Math.round(cap * (1 - Math.exp(-totalDeducted / cap)))
       : 0;
 
-    const finalScore = Math.max(policy.startingScore - effectiveDeduction, 0);
+    const startingScore = policy ? policy.startingScore : 100;
+    const finalScore = Math.max(startingScore - effectiveDeduction, 0);
 
     return {
       category,
-      startingScore: policy.startingScore,
+      startingScore,
       deductions,
       finalScore
     };

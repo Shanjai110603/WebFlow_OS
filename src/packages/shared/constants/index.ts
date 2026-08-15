@@ -24,7 +24,7 @@ export const DEFAULT_FIXER_STATE = {
   }
 };
 
-export const SCORING_POLICIES: Record<'accessibility' | 'privacy' | 'ux' | 'security' | 'seo', CategoryPolicy> = {
+export const SCORING_POLICIES: Record<'accessibility' | 'privacy' | 'ux' | 'security' | 'seo' | 'performance', CategoryPolicy> = {
   accessibility: {
     category: 'accessibility',
     startingScore: 100,
@@ -57,11 +57,18 @@ export const SCORING_POLICIES: Record<'accessibility' | 'privacy' | 'ux' | 'secu
       'small-body-text': 10,
       'bad-line-height': 10,
       'sticky-overlay': 10,
-      'dense-content': 10,
-      'unsized-media-cls': 10,
-      'render-blocking-scripts': 10,
-      'excessive-dom-budget': 15,
-      'lazy-loading-images': 5
+      'dense-content': 10
+    }
+  },
+  performance: {
+    category: 'performance',
+    startingScore: 100,
+    maxDeductionCap: 60, // Floor limit of 40
+    deductionWeights: {
+      'unsized-media-cls': 15,
+      'render-blocking-scripts': 15,
+      'excessive-dom-budget': 20,
+      'lazy-loading-images': 10
     }
   },
   security: {

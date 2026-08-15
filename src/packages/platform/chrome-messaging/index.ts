@@ -4,7 +4,7 @@ import { PayloadValidators } from '../../shared/schemas';
 export class MessageClient {
   public static async send<K extends keyof CommandMap>(
     type: K,
-    payload: CommandMap[K]['payload'],
+    payload: CommandMap[K],
     timeoutMs?: number
   ): Promise<CommandResponse<any>> {
     // 1. Validate payload before sending

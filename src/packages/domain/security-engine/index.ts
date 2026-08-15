@@ -34,7 +34,7 @@ export const SECURITY_RULES: AuditRule[] = [
       if (!parentIsHttps) return [];
 
       const issues: RawIssue[] = [];
-      context.resources.forEach((res, index) => {
+      (context.resources || []).forEach((res, index) => {
         if (res.url.startsWith('http:')) {
           issues.push({
             id: `sec-mixed-content-${index}`,

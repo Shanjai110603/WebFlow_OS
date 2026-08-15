@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type TabType = 'overview' | 'privacy-security' | 'seo' | 'accessibility' | 'ux' | 'fixer' | 'history';
+export type TabType = 'overview' | 'privacy-security' | 'seo' | 'accessibility' | 'ux' | 'performance' | 'fixer' | 'history';
 
 interface TabNavigationProps {
   activeTab: TabType;
@@ -10,6 +10,7 @@ interface TabNavigationProps {
     seo: number;
     accessibility: number;
     ux: number;
+    performance?: number;
   };
 }
 
@@ -23,6 +24,7 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
     { id: 'privacy-security', label: 'Privacy & Security', icon: '🔒', count: issueCounts?.privacySecurity },
     { id: 'seo', label: 'SEO', icon: '🔍', count: issueCounts?.seo },
     { id: 'accessibility', label: 'Accessibility', icon: '♿', count: issueCounts?.accessibility },
+    { id: 'performance', label: 'Performance', icon: '⚡', count: issueCounts?.performance },
     { id: 'ux', label: 'UX', icon: '📖', count: issueCounts?.ux },
     { id: 'fixer', label: 'Page Fixer', icon: '🛠️' },
     { id: 'history', label: 'History', icon: '📜' },

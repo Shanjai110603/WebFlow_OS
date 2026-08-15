@@ -65,7 +65,7 @@ export const IssueLocatorSchema = z.object({
 export const AuditIssueSchema = z.object({
   id: z.string(),
   ruleId: z.string(),
-  category: z.enum(['accessibility', 'privacy', 'ux', 'readability', 'security', 'seo']),
+  category: z.enum(['accessibility', 'privacy', 'ux', 'readability', 'security', 'seo', 'performance']),
   subcategory: z.string(),
   severity: z.enum(['critical', 'warning', 'info']),
   title: z.string(),
@@ -126,7 +126,7 @@ export const DeductionRecordSchema = z.object({
 });
 
 export const ScoreExplanationSchema = z.object({
-  category: z.enum(['accessibility', 'privacy', 'ux', 'security', 'seo']),
+  category: z.enum(['accessibility', 'privacy', 'ux', 'security', 'seo', 'performance']),
   startingScore: z.number(),
   deductions: z.array(DeductionRecordSchema),
   finalScore: z.number()
@@ -139,19 +139,21 @@ export const ScoreBreakdownSchema = z.object({
   ux: z.number().min(0).max(100),
   security: z.number().min(0).max(100),
   seo: z.number().min(0).max(100),
+  performance: z.number().min(0).max(100),
   explanations: z.object({
     accessibility: ScoreExplanationSchema,
     privacy: ScoreExplanationSchema,
     ux: ScoreExplanationSchema,
     security: ScoreExplanationSchema,
-    seo: ScoreExplanationSchema
+    seo: ScoreExplanationSchema,
+    performance: ScoreExplanationSchema
   })
 });
 
 export const AuditSessionSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string(),
   schemaVersion: z.number().int(),
-  scanProfile: z.enum(['quick', 'full', 'accessibility', 'privacy', 'ux', 'security', 'seo', 'developer', 'summary']).optional(),
+  scanProfile: z.enum(['quick', 'full', 'accessibility', 'privacy', 'ux', 'security', 'seo', 'performance', 'developer', 'summary']).optional(),
   page: PageSnapshotSchema,
   startedAt: z.number(),
   completedAt: z.number(),
@@ -168,59 +170,70 @@ export const AuditSessionSchema = z.object({
   }),
   metadata: z.object({
     userAgent: z.string(),
-    viewport: z.object({
-      width: z.number(),
-      height: z.number()
-    })
+    viewport: z.object({ width: z.number(), height: z.number() })
   })
 });
 
 export const StorageDumpSchema = z.object({
   preferences: z.record(z.string(), SitePreferenceRecordSchema).default({}),
-  history: z.array(AuditSessionSchema).default([])
+  history: z.array(AuditSessionSchema).default([]),
+  pinned: z.array(z.string()).default([])
 });
 
-// --- Command Payload Validators ---
+// --- Command Payload Schemas ---
 export const PayloadValidators = {
   RUN_AUDIT: z.object({
-    tabId: z.number().int().positive(),
-    scanProfile: z.enum(['quick', 'full', 'accessibility', 'privacy', 'ux', 'developer', 'summary']).optional()
+    tabId: z.number().int(),
+    scanProfile: z.enum(['quick', 'full', 'accessibility', 'privacy', 'ux', 'security', 'seo', 'performance', 'developer', 'summary']).optional()
   }),
+
   GET_AUDIT: z.object({
-    tabId: z.number().int().positive()
+    tabId: z.number().int()
   }),
+
   APPLY_FIXER_SETTINGS: z.object({
-    tabId: z.number().int().positive(),
+    tabId: z.number().int(),
     settings: FixerStateSchema
   }),
+
   GET_FIXER_SETTINGS: z.object({
-    tabId: z.number().int().positive()
+    tabId: z.number().int()
   }),
+
   HIGHLIGHT_ISSUE: z.object({
-    tabId: z.number().int().positive(),
-    selector: z.string().min(1)
+    tabId: z.number().int(),
+    selector: z.string()
   }),
+
   CLEAR_HIGHLIGHT: z.object({
-    tabId: z.number().int().positive()
+    tabId: z.number().int()
   }),
+
   LOAD_HISTORY: z.object({}),
+
   DELETE_HISTORY: z.object({
-    id: z.string().uuid()
+    id: z.string()
   }),
+
   PIN_HISTORY: z.object({
-    id: z.string().uuid(),
+    id: z.string(),
     pinned: z.boolean()
   }),
+
   COMPARE_AUDITS: z.object({
-    idA: z.string().uuid(),
-    idB: z.string().uuid()
+    idA: z.string(),
+    idB: z.string()
   }),
+
   EXPORT_REPORT: z.object({
-    id: z.string().uuid(),
-    format: z.enum(['md', 'json', 'csv'])
+    id: z.string(),
+    tabId: z.number().int().optional(),
+    session: AuditSessionSchema.optional(),
+    format: z.enum(['pdf', 'md', 'json', 'csv'])
   }),
+
   SAVE_ANNOTATION: z.object({
-    id: z.string().uuid(),
+    id: z.string(),
     notes: z.string()
   })
 };

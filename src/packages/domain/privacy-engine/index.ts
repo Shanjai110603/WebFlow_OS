@@ -92,7 +92,7 @@ export const KnownTrackerRule: AuditRule = {
   async run(context: ScanContext): Promise<RawIssue[]> {
     const issues: RawIssue[] = [];
 
-    context.resources.forEach(res => {
+    (context.resources || []).forEach(res => {
       if (res.tracker) {
         issues.push({
           id: `tracker-${res.domain}-${Math.random()}`,
@@ -254,7 +254,7 @@ export const FingerprintingHeuristicsRule: AuditRule = {
   async run(context: ScanContext): Promise<RawIssue[]> {
     const issues: RawIssue[] = [];
     
-    context.resources.forEach(res => {
+    (context.resources || []).forEach(res => {
       const url = res.url.toLowerCase();
       if (url.includes('fingerprint') || url.includes('device-id') || url.includes('client-id') || url.includes('canvas-id')) {
         issues.push({

@@ -313,7 +313,7 @@ export class ReportEngine {
         </div>
       </div>
 
-      <div className="scores-grid">
+      <div className="scores-grid" style="grid-template-columns: repeat(6, 1fr);">
         <div className="score-chip">
           <div className="score-chip-title">ACC</div>
           <div className="score-chip-val" style="color: ${scores.accessibility >= 80 ? '#059669' : '#d97706'};">${scores.accessibility}</div>
@@ -329,6 +329,10 @@ export class ReportEngine {
         <div className="score-chip">
           <div className="score-chip-title">SEO</div>
           <div className="score-chip-val" style="color: ${scores.seo >= 80 ? '#059669' : '#d97706'};">${scores.seo}</div>
+        </div>
+        <div className="score-chip">
+          <div className="score-chip-title">PERF</div>
+          <div className="score-chip-val" style="color: ${(scores.performance ?? 100) >= 80 ? '#059669' : '#d97706'};">${scores.performance ?? 100}</div>
         </div>
         <div className="score-chip">
           <div className="score-chip-title">UX</div>
@@ -502,7 +506,8 @@ export class ReportEngine {
           ux: 'UX & Readability',
           readability: 'UX & Readability',
           security: 'Security',
-          seo: 'SEO'
+          seo: 'SEO',
+          performance: 'Performance & Vitals'
         };
 
         session.issues.forEach((issue, idx) => {

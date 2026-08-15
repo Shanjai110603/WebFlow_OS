@@ -172,10 +172,10 @@ export const ScoreGauge: React.FC<ScoreGaugeProps> = ({ scores, isAuditing }) =>
         </div>
       </div>
 
-      {/* Category Chips 5-Column Grid */}
+      {/* Category Chips 6-Column Grid */}
       {scores && (
         <div
-          className="grid grid-cols-5 gap-2"
+          className="grid grid-cols-6 gap-1"
           style={{
             width: '100%',
             paddingTop: 12,
@@ -188,13 +188,13 @@ export const ScoreGauge: React.FC<ScoreGaugeProps> = ({ scores, isAuditing }) =>
               background: 'rgba(255, 255, 255, 0.03)',
               border: '1px solid rgba(255, 255, 255, 0.08)',
               borderRadius: 8,
-              padding: '6px 2px',
+              padding: '6px 1px',
             }}
           >
-            <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.3px' }}>ACC</span>
+            <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.2px' }}>ACC</span>
             <span
               style={{
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: 800,
                 color: scores.accessibility >= 80 ? 'var(--accent-green)' : scores.accessibility >= 50 ? 'var(--accent-amber)' : 'var(--accent-red)',
                 marginTop: 2,
@@ -210,13 +210,13 @@ export const ScoreGauge: React.FC<ScoreGaugeProps> = ({ scores, isAuditing }) =>
               background: 'rgba(255, 255, 255, 0.03)',
               border: '1px solid rgba(255, 255, 255, 0.08)',
               borderRadius: 8,
-              padding: '6px 2px',
+              padding: '6px 1px',
             }}
           >
-            <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.3px' }}>PRIV</span>
+            <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.2px' }}>PRIV</span>
             <span
               style={{
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: 800,
                 color: scores.privacy >= 80 ? 'var(--accent-green)' : scores.privacy >= 50 ? 'var(--accent-amber)' : 'var(--accent-red)',
                 marginTop: 2,
@@ -232,13 +232,13 @@ export const ScoreGauge: React.FC<ScoreGaugeProps> = ({ scores, isAuditing }) =>
               background: 'rgba(255, 255, 255, 0.03)',
               border: '1px solid rgba(255, 255, 255, 0.08)',
               borderRadius: 8,
-              padding: '6px 2px',
+              padding: '6px 1px',
             }}
           >
-            <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.3px' }}>SEC</span>
+            <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.2px' }}>SEC</span>
             <span
               style={{
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: 800,
                 color: scores.security >= 80 ? 'var(--accent-green)' : scores.security >= 50 ? 'var(--accent-amber)' : 'var(--accent-red)',
                 marginTop: 2,
@@ -254,13 +254,13 @@ export const ScoreGauge: React.FC<ScoreGaugeProps> = ({ scores, isAuditing }) =>
               background: 'rgba(255, 255, 255, 0.03)',
               border: '1px solid rgba(255, 255, 255, 0.08)',
               borderRadius: 8,
-              padding: '6px 2px',
+              padding: '6px 1px',
             }}
           >
-            <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.3px' }}>SEO</span>
+            <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.2px' }}>SEO</span>
             <span
               style={{
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: 800,
                 color: scores.seo >= 80 ? 'var(--accent-green)' : scores.seo >= 50 ? 'var(--accent-amber)' : 'var(--accent-red)',
                 marginTop: 2,
@@ -276,13 +276,35 @@ export const ScoreGauge: React.FC<ScoreGaugeProps> = ({ scores, isAuditing }) =>
               background: 'rgba(255, 255, 255, 0.03)',
               border: '1px solid rgba(255, 255, 255, 0.08)',
               borderRadius: 8,
-              padding: '6px 2px',
+              padding: '6px 1px',
             }}
           >
-            <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.3px' }}>UX</span>
+            <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.2px' }}>PERF</span>
             <span
               style={{
-                fontSize: 12,
+                fontSize: 11,
+                fontWeight: 800,
+                color: (scores.performance ?? 100) >= 80 ? 'var(--accent-green)' : (scores.performance ?? 100) >= 50 ? 'var(--accent-amber)' : 'var(--accent-red)',
+                marginTop: 2,
+              }}
+            >
+              {scores.performance ?? 100}
+            </span>
+          </div>
+
+          <div
+            className="flex flex-col items-center justify-center"
+            style={{
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: 8,
+              padding: '6px 1px',
+            }}
+          >
+            <span style={{ fontSize: 9, color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.2px' }}>UX</span>
+            <span
+              style={{
+                fontSize: 11,
                 fontWeight: 800,
                 color: scores.ux >= 80 ? 'var(--accent-green)' : scores.ux >= 50 ? 'var(--accent-amber)' : 'var(--accent-red)',
                 marginTop: 2,
