@@ -12,7 +12,7 @@ function escapeCSVCell(val: string): string {
 
 export class ReportEngine {
   /**
-   * Compiles audit session details into a formatted, self-contained printable PDF HTML document.
+   * Compiles audit session details into a high-contrast executive PDF HTML document with print auto-trigger.
    */
   public static compilePDF(session: AuditSession, _comparison?: ComparisonReport): string {
     try {
@@ -20,28 +20,59 @@ export class ReportEngine {
       const domain = session.page.domain;
       const url = session.page.url;
       const scores = session.scores;
+      const insights = session.insights;
+
+      let statusColor = '#f59e0b';
+      let statusText = 'Needs Fix';
+      if (scores.overall >= 80) {
+        statusColor = '#10b981';
+        statusText = 'Optimal';
+      } else if (scores.overall < 50) {
+        statusColor = '#ef4444';
+        statusText = 'Critical';
+      }
 
       let issuesHtml = '';
       if (session.issues.length === 0) {
-        issuesHtml = `<div className="no-issues">🎉 No audit issues detected! Webpage complies with scanned WebLens standards.</div>`;
+        issuesHtml = `<div style="padding: 20px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; color: #166534; font-weight: 600; text-align: center; margin-top: 10px;">
+          🎉 Outstanding! Zero compliance violations or technical security issues were detected on this page.
+        </div>`;
       } else {
         issuesHtml = session.issues
           .map((issue, idx) => {
             const badgeClass =
               issue.severity === 'critical' ? 'badge-critical' : issue.severity === 'warning' ? 'badge-warning' : 'badge-info';
             return `
-              <div className="issue-card">
-                <div className="issue-header">
-                  <span className="badge ${badgeClass}">${issue.severity}</span>
-                  <span className="issue-cat">${issue.category} &bull; ${issue.subcategory}</span>
+              <div className="issue-card" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 16px; margin-bottom: 14px; page-break-inside: avoid; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span className="badge ${badgeClass}">${issue.severity.toUpperCase()}</span>
+                    <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">${issue.category} &bull; ${issue.subcategory}</span>
+                  </div>
+                  ${issue.confidence ? `<span style="font-size: 10px; color: #64748b; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Confidence: ${issue.confidence}</span>` : ''}
                 </div>
-                <h3 className="issue-title">${idx + 1}. ${issue.title}</h3>
-                <p className="issue-desc">${issue.description}</p>
-                <div className="issue-meta">
-                  <strong>Why it matters:</strong> ${issue.whyItMatters || 'N/A'}<br/>
-                  <strong>Remediation:</strong> ${issue.remediation || 'N/A'}
-                </div>
-                ${issue.locator?.primarySelector ? `<div className="issue-code"><code>${issue.locator.primarySelector}</code></div>` : ''}
+
+                <h4 style="font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 6px;">${idx + 1}. ${issue.title}</h4>
+                <p style="font-size: 13px; color: #334155; margin-bottom: 10px; line-height: 1.5;">${issue.description}</p>
+
+                ${issue.whyItMatters ? `
+                  <div style="background: #f8fafc; border-left: 4px solid #f59e0b; padding: 10px 12px; border-radius: 0 6px 6px 0; margin-bottom: 8px; font-size: 12px; color: #475569;">
+                    <strong style="color: #b45309;">Why it matters:</strong> ${issue.whyItMatters}
+                  </div>
+                ` : ''}
+
+                ${issue.remediation ? `
+                  <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 10px 12px; border-radius: 0 6px 6px 0; margin-bottom: 8px; font-size: 12px; color: #166534;">
+                    <strong style="color: #15803d;">Remediation:</strong> ${issue.remediation}
+                  </div>
+                ` : ''}
+
+                ${issue.locator?.primarySelector ? `
+                  <div style="margin-top: 8px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 2px;">Element Locator:</span>
+                    <code style="font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 11px; background: #0f172a; color: #38bdf8; padding: 6px 10px; border-radius: 6px; display: block; word-break: break-all;">${issue.locator.primarySelector}</code>
+                  </div>
+                ` : ''}
               </div>
             `;
           })
@@ -52,246 +83,287 @@ export class ReportEngine {
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>WebLens OS PDF Audit Report - ${domain}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebLens OS Executive Audit Report - ${domain}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap');
 
+    @page {
+      size: A4 portrait;
+      margin: 12mm;
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: 'Inter', -apple-system, sans-serif;
-      background: #0f172a;
-      color: #f8fafc;
-      padding: 32px;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+      padding: 24px;
       line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
     }
 
-    .report-container {
-      max-width: 840px;
+    .report-paper {
+      max-width: 880px;
       margin: 0 auto;
-      background: #1e293b;
-      border: 1px solid #334155;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
       border-radius: 16px;
-      padding: 32px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      padding: 36px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
     }
 
+    /* Top Banner Header */
     .header-bar {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
       padding-bottom: 20px;
-      border-bottom: 2px solid #8b5cf6;
+      border-bottom: 3px solid #7c3aed;
       margin-bottom: 24px;
     }
 
-    .brand-title {
+    .brand-logo {
       font-family: 'Outfit', sans-serif;
-      font-size: 24px;
+      font-size: 26px;
       font-weight: 800;
-      color: #ffffff;
+      color: #0f172a;
+      letter-spacing: -0.5px;
     }
 
-    .domain-pill {
-      font-size: 13px;
-      color: #94a3b8;
-      margin-top: 4px;
+    .brand-tagline {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 2px;
+      font-weight: 500;
+    }
+
+    .meta-box {
+      text-align: right;
+      font-size: 12px;
+      color: #475569;
+    }
+
+    .meta-domain {
+      font-weight: 700;
+      color: #0f172a;
+      font-size: 14px;
+    }
+
+    /* Executive Score Grid */
+    .hero-score-box {
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      border: 1px solid #cbd5e1;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .overall-dial-container {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .score-badge-circle {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 4px solid ${statusColor};
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Outfit', sans-serif;
+      font-size: 26px;
+      font-weight: 800;
+      color: #0f172a;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
     }
 
     .scores-grid {
       display: grid;
-      grid-template-columns: repeat(6, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 10px;
-      margin-bottom: 28px;
+      flex: 1;
     }
 
-    .score-card {
-      background: #0f172a;
-      border: 1px solid #334155;
+    .score-chip {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
       border-radius: 10px;
-      padding: 12px 6px;
+      padding: 10px;
       text-align: center;
     }
 
-    .score-card-title {
+    .score-chip-title {
       font-size: 10px;
       font-weight: 700;
-      color: #94a3b8;
+      color: #64748b;
       text-transform: uppercase;
     }
 
-    .score-card-val {
+    .score-chip-val {
       font-family: 'Outfit', sans-serif;
-      font-size: 22px;
+      font-size: 18px;
       font-weight: 800;
-      color: #38bdf8;
-      margin-top: 4px;
+      color: #0f172a;
+      margin-top: 2px;
     }
 
-    .overall-card {
-      background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(124, 58, 237, 0.1) 100%);
-      border-color: #8b5cf6;
-    }
-
-    .overall-card .score-card-val {
-      color: #c4b5fd;
-    }
-
-    .section-title {
+    .section-heading {
       font-family: 'Outfit', sans-serif;
-      font-size: 16px;
-      font-weight: 700;
-      color: #ffffff;
+      font-size: 18px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-top: 28px;
       margin-bottom: 14px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid #334155;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e2e8f0;
     }
 
-    .issue-card {
-      background: #0f172a;
-      border: 1px solid #334155;
-      border-radius: 10px;
-      padding: 14px;
-      margin-bottom: 12px;
-      page-break-inside: avoid;
-    }
-
-    .issue-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 6px;
-    }
-
+    /* Badges */
     .badge {
-      padding: 2px 7px;
-      border-radius: 4px;
-      font-size: 9px;
-      font-weight: 800;
-      text-transform: uppercase;
-    }
-
-    .badge-critical { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid #ef4444; }
-    .badge-warning { background: rgba(245, 158, 11, 0.2); color: #fcd34d; border: 1px solid #f59e0b; }
-    .badge-info { background: rgba(139, 92, 246, 0.2); color: #c4b5fd; border: 1px solid #8b5cf6; }
-
-    .issue-cat { font-size: 11px; color: #94a3b8; font-weight: 600; }
-    .issue-title { font-size: 14px; font-weight: 700; color: #f8fafc; margin-bottom: 4px; }
-    .issue-desc { font-size: 12px; color: #cbd5e1; margin-bottom: 8px; }
-
-    .issue-meta {
-      font-size: 11px;
-      color: #94a3b8;
-      background: rgba(255, 255, 255, 0.02);
-      border-left: 3px solid #8b5cf6;
-      padding: 8px 12px;
-      margin-top: 6px;
-      border-radius: 4px;
-    }
-
-    .issue-code { margin-top: 8px; }
-    code {
-      font-family: monospace;
-      font-size: 10px;
-      color: #38bdf8;
-      background: #020617;
-      padding: 4px 8px;
-      border-radius: 4px;
       display: inline-block;
-      word-break: break-all;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
     }
 
-    .no-print {
+    .badge-critical { background: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
+    .badge-warning { background: #fef3c7; color: #92400e; border: 1px solid #fbbf24; }
+    .badge-info { background: #e0e7ff; color: #3730a3; border: 1px solid #818cf8; }
+
+    /* Print Controls Bar */
+    .print-bar {
       display: flex;
-      justify-content: flex-end;
-      gap: 12px;
-      margin-bottom: 20px;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 880px;
+      margin: 0 auto 16px auto;
+      padding: 12px 18px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
 
-    .btn-print {
-      background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    .btn-pdf {
+      background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
       color: #ffffff;
       border: none;
-      padding: 10px 20px;
+      padding: 10px 22px;
       border-radius: 8px;
       font-weight: 700;
       font-size: 13px;
       cursor: pointer;
-      box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4);
+      box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35);
+      transition: all 0.2s ease;
     }
+    .btn-pdf:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(124, 58, 237, 0.45); }
 
     @media print {
-      body { background: #ffffff; color: #0f172a; padding: 0; }
-      .report-container { background: #ffffff; border: none; box-shadow: none; padding: 0; max-width: 100%; }
-      .header-bar { border-bottom-color: #7c3aed; }
-      .brand-title { color: #0f172a; }
-      .domain-pill { color: #475569; }
-      .score-card { background: #f8fafc; border-color: #cbd5e1; }
-      .score-card-title { color: #475569; }
-      .score-card-val { color: #0284c7; }
-      .overall-card { background: #f3e8ff; border-color: #7c3aed; }
-      .overall-card .score-card-val { color: #6d28d9; }
-      .section-title { color: #0f172a; border-bottom-color: #cbd5e1; }
-      .issue-card { background: #f8fafc; border-color: #cbd5e1; }
-      .issue-title { color: #0f172a; }
-      .issue-desc { color: #334155; }
-      .issue-meta { background: #f1f5f9; border-left-color: #7c3aed; color: #334155; }
-      code { background: #e2e8f0; color: #0369a1; }
-      .no-print { display: none !important; }
+      body { background: #ffffff; color: #000000; padding: 0; }
+      .report-paper { border: none; box-shadow: none; padding: 0; max-width: 100%; }
+      .print-bar { display: none !important; }
     }
   </style>
 </head>
 <body>
-  <div className="no-print">
-    <button className="btn-print" onclick="window.print()">
-      🖨️ Save as PDF / Print
+  <!-- Print Controls Floating Bar -->
+  <div className="print-bar">
+    <div style="font-size: 13px; font-weight: 600; color: #334155;">
+      📄 Executive PDF Audit Report Ready
+    </div>
+    <button className="btn-pdf" onclick="window.print()">
+      🖨️ Save as PDF / Print Document
     </button>
   </div>
 
-  <div className="report-container">
+  <div className="report-paper">
+    {/* Header */}
     <div className="header-bar">
       <div>
-        <div className="brand-title">WebLens OS Audit Report</div>
-        <div className="domain-pill">Target Domain: ${domain} | Scanned: ${dateStr}</div>
+        <div className="brand-logo">WebLens OS Audit Report</div>
+        <div className="brand-tagline">Automated Privacy, Accessibility, Security & SEO Engineering Spec</div>
       </div>
-      <div>
-        <a href="${url}" target="_blank" style="color: #38bdf8; font-size: 11px; text-decoration: none;">${url}</a>
-      </div>
-    </div>
-
-    <!-- Score Breakdown Bar -->
-    <div className="scores-grid">
-      <div className="score-card overall-card">
-        <div className="score-card-title">Overall</div>
-        <div className="score-card-val">${scores.overall}</div>
-      </div>
-      <div className="score-card">
-        <div className="score-card-title">ACC</div>
-        <div className="score-card-val">${scores.accessibility}</div>
-      </div>
-      <div className="score-card">
-        <div className="score-card-title">PRIV</div>
-        <div className="score-card-val">${scores.privacy}</div>
-      </div>
-      <div className="score-card">
-        <div className="score-card-title">SEC</div>
-        <div className="score-card-val">${scores.security}</div>
-      </div>
-      <div className="score-card">
-        <div className="score-card-title">SEO</div>
-        <div className="score-card-val">${scores.seo}</div>
-      </div>
-      <div className="score-card">
-        <div className="score-card-title">UX</div>
-        <div className="score-card-val">${scores.ux}</div>
+      <div className="meta-box">
+        <div className="meta-domain">${domain}</div>
+        <div style="font-size: 11px; color: #64748b; margin-top: 1px;">${url}</div>
+        <div>Scanned: ${dateStr}</div>
+        ${session.scanProfile ? `<div style="font-size: 10px; color: #7c3aed; font-weight: 700; text-transform: uppercase; margin-top: 2px;">Profile: ${session.scanProfile}</div>` : ''}
       </div>
     </div>
 
-    <!-- Active Findings -->
-    <div className="section-title">Active Violations & Findings (${session.issues.length})</div>
+    {/* Executive Score Hero Box */}
+    <div className="hero-score-box">
+      <div className="overall-dial-container">
+        <div className="score-badge-circle">${scores.overall}</div>
+        <div>
+          <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Overall Health</div>
+          <div style="font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 800; color: ${statusColor}; text-transform: uppercase;">
+            ${statusText}
+          </div>
+        </div>
+      </div>
+
+      <div className="scores-grid">
+        <div className="score-chip">
+          <div className="score-chip-title">ACC</div>
+          <div className="score-chip-val" style="color: ${scores.accessibility >= 80 ? '#059669' : '#d97706'};">${scores.accessibility}</div>
+        </div>
+        <div className="score-chip">
+          <div className="score-chip-title">PRIV</div>
+          <div className="score-chip-val" style="color: ${scores.privacy >= 80 ? '#059669' : '#d97706'};">${scores.privacy}</div>
+        </div>
+        <div className="score-chip">
+          <div className="score-chip-title">SEC</div>
+          <div className="score-chip-val" style="color: ${scores.security >= 80 ? '#059669' : '#d97706'};">${scores.security}</div>
+        </div>
+        <div className="score-chip">
+          <div className="score-chip-title">SEO</div>
+          <div className="score-chip-val" style="color: ${scores.seo >= 80 ? '#059669' : '#d97706'};">${scores.seo}</div>
+        </div>
+        <div className="score-chip">
+          <div className="score-chip-title">UX</div>
+          <div className="score-chip-val" style="color: ${scores.ux >= 80 ? '#059669' : '#d97706'};">${scores.ux}</div>
+        </div>
+      </div>
+    </div>
+
+    ${insights ? `
+      <div className="section-heading">Structural Page Metrics</div>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;">
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; text-align: center;">
+          <div style="font-size: 18px; font-weight: 800; color: #7c3aed;">${insights.imagesCount.total}</div>
+          <div style="font-size: 10px; color: #64748b;">Images (${insights.imagesCount.missingAlt} no alt)</div>
+        </div>
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; text-align: center;">
+          <div style="font-size: 18px; font-weight: 800; color: #0284c7;">${insights.formsCount.total}</div>
+          <div style="font-size: 10px; color: #64748b;">Form Elements (${insights.formsCount.unlabeled} unlabeled)</div>
+        </div>
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; text-align: center;">
+          <div style="font-size: 18px; font-weight: 800; color: #d97706;">${insights.trackersSummary.total}</div>
+          <div style="font-size: 10px; color: #64748b;">Trackers Identified</div>
+        </div>
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; text-align: center;">
+          <div style="font-size: 18px; font-weight: 800; color: #059669;">${insights.resourceSummary.total}</div>
+          <div style="font-size: 10px; color: #64748b;">Resource Requests</div>
+        </div>
+      </div>
+    ` : ''}
+
+    <div className="section-heading">Detailed Findings & Compliance Audit (${session.issues.length})</div>
     ${issuesHtml}
 
-    <div style="margin-top: 24px; font-size: 10px; color: #94a3b8; text-align: center; border-top: 1px solid #334155; padding-top: 12px;">
-      Generated locally by WebLens OS Browser Extension. Zero user data is transmitted outside your device.
+    <div style="margin-top: 32px; font-size: 11px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 16px;">
+      Generated by WebLens OS Browser Extension. Zero audit telemetry is collected or transmitted outside your local environment.
     </div>
   </div>
 
@@ -299,7 +371,7 @@ export class ReportEngine {
     window.onload = function() {
       setTimeout(function() {
         window.print();
-      }, 300);
+      }, 400);
     };
   </script>
 </body>

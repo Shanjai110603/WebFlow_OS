@@ -169,7 +169,11 @@ export const SidePanelApp: React.FC = () => {
       if (format === 'pdf') {
         const blob = new Blob([outputData], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
-        window.open(url, '_blank');
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `weblens-audit-report-${session.page.domain}.pdf.html`;
+        a.click();
+        chrome.tabs.create({ url });
       } else {
         const mimeTypes = {
           json: 'application/json',

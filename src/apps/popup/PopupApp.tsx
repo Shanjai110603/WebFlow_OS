@@ -162,7 +162,11 @@ export const PopupApp: React.FC = () => {
     const openPdfReport = (htmlContent: string) => {
       const blob = new Blob([htmlContent], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `weblens-audit-report-${session.page.domain}.pdf.html`;
+      a.click();
+      chrome.tabs.create({ url });
     };
 
     chrome.runtime.sendMessage(
