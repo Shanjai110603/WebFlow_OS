@@ -10,6 +10,7 @@ import { ReportEngine } from '../../src/packages/domain/report-engine';
 import { FixerStateSchema } from '../../src/packages/shared/schemas';
 import { SecurityEngine } from '../../src/packages/domain/security-engine';
 import { SeoEngine } from '../../src/packages/domain/seo-engine';
+// @ts-ignore
 import { JSDOM } from 'jsdom';
 
 describe('WCAG Color Contrast Calculations', () => {

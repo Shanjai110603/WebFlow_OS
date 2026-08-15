@@ -65,14 +65,14 @@ test.describe('WebLens OS - Playwright E2E Extension Tests', () => {
     await page.goto(`chrome-extension://${extensionId}/apps/sidepanel/index.html`);
 
     // Verify workspace tabs
-    await expect(page.locator('button:has-text("dashboard")')).toBeVisible();
-    await expect(page.locator('button:has-text("Fix Page")')).toBeVisible();
-    await expect(page.locator('button:has-text("accessibility")')).toBeVisible();
-    await expect(page.locator('button:has-text("privacy")')).toBeVisible();
+    await expect(page.locator('button:has-text("Overview")')).toBeVisible();
+    await expect(page.locator('button:has-text("Page Fixer")')).toBeVisible();
+    await expect(page.locator('button:has-text("Accessibility")')).toBeVisible();
+    await expect(page.locator('button:has-text("Privacy & Security")')).toBeVisible();
     
-    // Switch to Fix Page tab and verify typography sliders
-    await page.click('button:has-text("Fix Page")');
-    await expect(page.locator('text=Font Size Offset')).toBeVisible();
-    await expect(page.locator('text=Line Height spacing')).toBeVisible();
+    // Switch to Page Fixer tab and verify typography sliders
+    await page.click('button:has-text("Page Fixer")');
+    await expect(page.locator('text=Font Size')).toBeVisible();
+    await expect(page.locator('text=Line Spacing')).toBeVisible();
   });
 });

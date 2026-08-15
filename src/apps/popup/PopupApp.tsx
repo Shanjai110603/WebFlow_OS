@@ -17,7 +17,7 @@ export const PopupApp: React.FC = () => {
         setLoading(false);
         return;
       }
-      
+
       const activeTab = tabs[0];
       setTab(activeTab);
 
@@ -29,14 +29,14 @@ export const PopupApp: React.FC = () => {
 
       const tabId = activeTab.id;
 
-      // 2. Fetch active visual settings from storage
+      // 2. Fetch active visual settings from background worker
       chrome.runtime.sendMessage(
         { type: 'GET_FIXER_SETTINGS', payload: { tabId } },
         (res) => {
           if (res && res.success && res.data) {
             setSettings(res.data);
           }
-          
+
           // 3. Fetch latest completed audit score
           chrome.runtime.sendMessage(
             { type: 'GET_AUDIT', payload: { tabId } },
@@ -58,11 +58,10 @@ export const PopupApp: React.FC = () => {
 
     const nextState = {
       ...settings,
-      enabled: true, // Auto enable if toggle clicked
-      [key]: !settings[key]
+      enabled: true,
+      [key]: !settings[key],
     };
 
-    // If all toggles are disabled, disable the overall fixer flag
     if (!nextState.darkMode && !nextState.focusMode && !nextState.hideSticky && !nextState.readerMode) {
       nextState.enabled = false;
     }
@@ -83,12 +82,10 @@ export const PopupApp: React.FC = () => {
     if (!tab || !tab.id) return;
     const tabId = tab.id;
 
-    // Call chrome open panel API
     chrome.sidePanel.open({ tabId }, () => {
       if (chrome.runtime.lastError) {
         console.error('Error opening side panel:', chrome.runtime.lastError.message);
       } else {
-        // Close popup window once side panel is launched
         window.close();
       }
     });
@@ -96,40 +93,52 @@ export const PopupApp: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center animate-fade-in" style={{ width: 360, height: 200, padding: 24 }}>
-        <div className="spinner" style={{ width: 24, height: 24, border: '3px solid var(--border-color)', borderTopColor: 'var(--accent-purple)', borderRadius: '50%' }}></div>
-        <p style={{ marginTop: 12, color: 'var(--text-secondary)' }}>Loading WebLens status...</p>
+      <div className="flex flex-col items-center justify-center animate-fade-in" style={{ width: 360, height: 210, padding: 24 }}>
+        <div className="spinner" style={{ width: 28, height: 28, border: '3px solid var(--border-color)', borderTopColor: 'var(--accent-purple)', borderRadius: '50%' }}></div>
+        <p style={{ marginTop: 14, color: 'var(--text-secondary)', fontWeight: 600 }}>Loading WebLens status...</p>
       </div>
     );
   }
 
   if (errorMsg) {
     return (
-      <div className="flex flex-col items-center justify-center animate-fade-in" style={{ width: 360, height: 200, padding: 24, textAlign: 'center' }}>
-        <span style={{ fontSize: 32 }}>⚠️</span>
-        <p style={{ marginTop: 12, fontWeight: 600, color: 'var(--accent-red)' }}>{errorMsg}</p>
-        <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>Please open a standard webpage.</p>
+      <div className="flex flex-col items-center justify-center animate-fade-in" style={{ width: 360, height: 210, padding: 24, textAlign: 'center' }}>
+        <span style={{ fontSize: 36 }}>⚠️</span>
+        <p style={{ marginTop: 12, fontWeight: 700, color: 'var(--accent-red)' }}>{errorMsg}</p>
+        <p style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>Please open a standard webpage.</p>
       </div>
     );
   }
 
   const hostname = tab?.url ? new URL(tab.url).hostname : 'Target Page';
+  const overallScore = session?.scores?.overall;
 
   return (
-    <div className="flex flex-col animate-fade-in" style={{ width: 360, padding: 16, gap: 16 }}>
-      {/* Header */}
-      <div className="flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: 12 }}>
+    <div className="flex flex-col animate-fade-in" style={{ width: 360, padding: 16, gap: 14 }}>
+      {/* Header Bar */}
+      <div className="flex items-center justify-between" style={{ paddingBottom: 10, borderBottom: '1px solid var(--border-color)' }}>
         <div className="flex items-center gap-2">
-          <span style={{ fontSize: 20 }}>👁️</span>
+          <div
+            className="flex items-center justify-center"
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 8,
+              background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(6, 182, 212, 0.2))',
+              border: '1px solid rgba(139, 92, 246, 0.4)',
+              fontSize: 16,
+            }}
+          >
+            👁️
+          </div>
           <div>
-            <h1 style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.3px', lineHeight: 1.1 }}>WebLens OS</h1>
-            <p style={{ fontSize: 11, color: 'var(--text-secondary)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 15, fontWeight: 800, letterSpacing: '-0.3px', lineHeight: 1.1 }}>WebLens OS</h1>
+            <p style={{ fontSize: 11, color: 'var(--text-secondary)', maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>
               {hostname}
             </p>
           </div>
         </div>
-        
-        {/* Secure connection status */}
+
         {tab?.url?.startsWith('https:') ? (
           <span className="badge badge-success" style={{ fontSize: 9 }}>🔒 Secure</span>
         ) : (
@@ -137,40 +146,52 @@ export const PopupApp: React.FC = () => {
         )}
       </div>
 
-      {/* Score overview dial */}
-      <div className="card flex items-center justify-between" style={{ padding: 12 }}>
+      {/* Mini Score Overview Card */}
+      <div className="glass-card flex items-center justify-between" style={{ padding: 12 }}>
         <div>
-          <h2 style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>WebLens Score</h2>
+          <h2 style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>WebLens Audit Score</h2>
           <p style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
-            {session ? 'Based on latest audit run' : 'Audit required to evaluate'}
+            {session ? 'Based on latest audit run' : 'Run audit to evaluate'}
           </p>
         </div>
-        <div className="flex items-center justify-center" style={{
-          width: 54,
-          height: 54,
-          borderRadius: '50%',
-          background: session ? 'var(--bg-tertiary)' : 'transparent',
-          border: `3px solid ${session ? (session.scores.overall >= 80 ? 'var(--accent-green)' : session.scores.overall >= 50 ? 'var(--accent-amber)' : 'var(--accent-red)') : 'var(--border-color)'}`,
-          fontWeight: 700,
-          fontSize: 16,
-          color: session ? '#fff' : 'var(--text-secondary)'
-        }}>
-          {session ? `${session.scores.overall}` : '--'}
+        <div
+          className="flex items-center justify-center"
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: '50%',
+            background: 'var(--bg-tertiary)',
+            border: `3px solid ${
+              overallScore !== undefined
+                ? overallScore >= 80
+                  ? 'var(--accent-green)'
+                  : overallScore >= 50
+                  ? 'var(--accent-amber)'
+                  : 'var(--accent-red)'
+                : 'var(--border-color)'
+            }`,
+            fontWeight: 800,
+            fontSize: 15,
+            color: '#fff',
+            boxShadow: overallScore !== undefined ? `0 0 12px ${overallScore >= 80 ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}` : 'none',
+          }}
+        >
+          {overallScore !== undefined ? overallScore : '--'}
         </div>
       </div>
 
-      {/* Pocket Visual Toggles */}
+      {/* Quick Visitor Controls */}
       <div className="flex flex-col gap-2">
-        <h3 style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+        <h3 style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
           Visitor Preferences
         </h3>
-        
-        <div className="card flex items-center justify-between" style={{ padding: 10 }}>
+
+        <div className="glass-card flex items-center justify-between" style={{ padding: '8px 12px' }}>
           <div className="flex items-center gap-2">
-            <span style={{ fontSize: 16 }}>🌙</span>
+            <span style={{ fontSize: 15 }}>🌙</span>
             <div>
-              <p style={{ fontWeight: 600, fontSize: 13 }}>Dark Mode Override</p>
-              <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Force dark theme stylesheet</p>
+              <p style={{ fontWeight: 600, fontSize: 12 }}>Dark Mode Override</p>
+              <p style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Force dark theme stylesheet</p>
             </div>
           </div>
           <label className="switch">
@@ -183,12 +204,12 @@ export const PopupApp: React.FC = () => {
           </label>
         </div>
 
-        <div className="card flex items-center justify-between" style={{ padding: 10 }}>
+        <div className="glass-card flex items-center justify-between" style={{ padding: '8px 12px' }}>
           <div className="flex items-center gap-2">
-            <span style={{ fontSize: 16 }}>🎯</span>
+            <span style={{ fontSize: 15 }}>🎯</span>
             <div>
-              <p style={{ fontWeight: 600, fontSize: 13 }}>Focus Mode</p>
-              <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Dim surrounding distractions</p>
+              <p style={{ fontWeight: 600, fontSize: 12 }}>Focus Mode</p>
+              <p style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Dim surrounding distractions</p>
             </div>
           </div>
           <label className="switch">
@@ -201,12 +222,12 @@ export const PopupApp: React.FC = () => {
           </label>
         </div>
 
-        <div className="card flex items-center justify-between" style={{ padding: 10 }}>
+        <div className="glass-card flex items-center justify-between" style={{ padding: '8px 12px' }}>
           <div className="flex items-center gap-2">
-            <span style={{ fontSize: 16 }}>🧹</span>
+            <span style={{ fontSize: 15 }}>🧹</span>
             <div>
-              <p style={{ fontWeight: 600, fontSize: 13 }}>Clean Layout</p>
-              <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Hide overlays and sticky ads</p>
+              <p style={{ fontWeight: 600, fontSize: 12 }}>Clean Layout</p>
+              <p style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Hide overlays & sticky banners</p>
             </div>
           </div>
           <label className="switch">
@@ -219,12 +240,12 @@ export const PopupApp: React.FC = () => {
           </label>
         </div>
 
-        <div className="card flex items-center justify-between" style={{ padding: 10 }}>
+        <div className="glass-card flex items-center justify-between" style={{ padding: '8px 12px' }}>
           <div className="flex items-center gap-2">
-            <span style={{ fontSize: 16 }}>📖</span>
+            <span style={{ fontSize: 15 }}>📖</span>
             <div>
-              <p style={{ fontWeight: 600, fontSize: 13 }}>Reader Mode</p>
-              <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Clean, distraction-free reading</p>
+              <p style={{ fontWeight: 600, fontSize: 12 }}>Reader Mode</p>
+              <p style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Clean distraction-free reading</p>
             </div>
           </div>
           <label className="switch">
@@ -239,7 +260,7 @@ export const PopupApp: React.FC = () => {
       </div>
 
       {/* CTA launcher */}
-      <button className="btn" onClick={handleOpenSidePanel}>
+      <button className="btn" onClick={handleOpenSidePanel} style={{ width: '100%', marginTop: 2 }}>
         <span>🛠️</span>
         Open Full Workspace
       </button>
