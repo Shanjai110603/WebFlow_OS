@@ -5,7 +5,7 @@ interface HistoryCompareTabProps {
   currentSession: AuditSession | null;
   history: AuditSession[];
   comparisonReport: ComparisonReport | null;
-  onExport: (format: 'md' | 'json' | 'csv') => void;
+  onExport: (format: 'pdf' | 'md' | 'json' | 'csv') => void;
   onDeleteHistory: (id: string) => void;
   onSaveAnnotation: (id: string, notes: string) => void;
   onCompare: (idA: string, idB: string) => void;
@@ -43,18 +43,21 @@ export const HistoryCompareTab: React.FC<HistoryCompareTabProps> = ({
           📥 Offline Export Workspace
         </h3>
         <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-          Export the active audit report into structured Markdown, JSON, or CSV spreadsheets.
+          Export the active audit report into Printable PDF, Markdown, JSON, or CSV spreadsheets.
         </p>
 
-        <div className="grid grid-cols-3 gap-2">
-          <button className="btn btn-secondary" onClick={() => onExport('md')} disabled={!currentSession}>
+        <div className="grid grid-cols-4 gap-1">
+          <button className="btn" onClick={() => onExport('pdf')} disabled={!currentSession} style={{ padding: '7px 6px', fontSize: 10 }}>
+            📕 PDF
+          </button>
+          <button className="btn btn-secondary" onClick={() => onExport('md')} disabled={!currentSession} style={{ padding: '7px 6px', fontSize: 10 }}>
             📝 Markdown
           </button>
-          <button className="btn btn-secondary" onClick={() => onExport('csv')} disabled={!currentSession}>
-            📊 CSV Spreadsheet
+          <button className="btn btn-secondary" onClick={() => onExport('csv')} disabled={!currentSession} style={{ padding: '7px 6px', fontSize: 10 }}>
+            📊 CSV
           </button>
-          <button className="btn btn-secondary" onClick={() => onExport('json')} disabled={!currentSession}>
-            ⚙️ Raw JSON
+          <button className="btn btn-secondary" onClick={() => onExport('json')} disabled={!currentSession} style={{ padding: '7px 6px', fontSize: 10 }}>
+            ⚙️ JSON
           </button>
         </div>
       </div>

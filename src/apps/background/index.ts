@@ -214,6 +214,8 @@ async function routeCommand(message: any, sender: chrome.runtime.MessageSender):
         output = ReportEngine.compileJSON(session);
       } else if (payload.format === 'csv') {
         output = ReportEngine.compileCSV(session);
+      } else if (payload.format === 'pdf') {
+        output = ReportEngine.compilePDF(session);
       } else {
         const previousSession = dump.history
           .filter(s => s.page.domain === session.page.domain && s.completedAt < session.completedAt)

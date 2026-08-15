@@ -7,7 +7,7 @@ interface HeaderProps {
   scanProfile: ScanProfileType;
   onProfileChange: (profile: ScanProfileType) => void;
   onReAudit: () => void;
-  onGenerateReport?: (format: 'md' | 'json' | 'csv') => void;
+  onGenerateReport?: (format: 'pdf' | 'md' | 'json' | 'csv') => void;
   isAuditing: boolean;
 }
 
@@ -145,7 +145,7 @@ export const Header: React.FC<HeaderProps> = ({
                 borderRadius: 8,
                 whiteSpace: 'nowrap',
               }}
-              title="Generate Audit Report"
+              title="Generate Audit Report (PDF Default)"
             >
               📄 Report ▼
             </button>
@@ -158,7 +158,7 @@ export const Header: React.FC<HeaderProps> = ({
                   top: '115%',
                   right: 0,
                   zIndex: 9999,
-                  minWidth: 165,
+                  minWidth: 175,
                   padding: 6,
                   background: 'rgba(18, 18, 32, 0.96)',
                   backdropFilter: 'blur(20px)',
@@ -168,6 +168,16 @@ export const Header: React.FC<HeaderProps> = ({
                   boxShadow: '0 12px 32px rgba(0, 0, 0, 0.85), 0 0 16px rgba(139, 92, 246, 0.2)',
                 }}
               >
+                <button
+                  className="btn"
+                  onClick={() => {
+                    onGenerateReport('pdf');
+                    setShowReportMenu(false);
+                  }}
+                  style={{ justifyContent: 'flex-start', padding: '7px 10px', fontSize: 11 }}
+                >
+                  📕 Printable PDF (.pdf) ★
+                </button>
                 <button
                   className="btn btn-secondary"
                   onClick={() => {

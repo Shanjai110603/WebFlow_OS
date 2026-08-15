@@ -6,7 +6,7 @@ interface DashboardTabProps {
   session: AuditSession | null;
   onHighlight: (selector: string) => void;
   onTabChange: (tab: any) => void;
-  onGenerateReport?: (format: 'md' | 'json' | 'csv') => void;
+  onGenerateReport?: (format: 'pdf' | 'md' | 'json' | 'csv') => void;
 }
 
 export const DashboardTab: React.FC<DashboardTabProps> = ({
@@ -112,18 +112,18 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
           }}
         >
           <div>
-            <h3 style={{ fontSize: 13, fontWeight: 700, color: '#ffffff' }}>📄 Comprehensive Audit Report</h3>
+            <h3 style={{ fontSize: 13, fontWeight: 700, color: '#ffffff' }}>📕 Printable PDF Audit Report</h3>
             <p style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
-              Export formatted findings, accessibility tables, and security logs.
+              Generate formatted PDF findings, accessibility tables, and security logs.
             </p>
           </div>
           <div className="flex gap-1">
             <button
               className="btn"
-              onClick={() => onGenerateReport('md')}
+              onClick={() => onGenerateReport('pdf')}
               style={{ padding: '7px 12px', fontSize: 11 }}
             >
-              Generate Report
+              Generate PDF
             </button>
           </div>
         </div>

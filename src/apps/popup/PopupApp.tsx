@@ -158,17 +158,14 @@ export const PopupApp: React.FC = () => {
       return;
     }
     chrome.runtime.sendMessage(
-      { type: 'EXPORT_REPORT', payload: { id: session.id, format: 'md' } },
+      { type: 'EXPORT_REPORT', payload: { id: session.id, format: 'pdf' } },
       (res) => {
         if (res && res.success && res.data) {
-          const blob = new Blob([res.data], { type: 'text/markdown' });
+          const blob = new Blob([res.data], { type: 'text/html' });
           const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `weblens-report-${session.page.domain}.md`;
-          a.click();
+          window.open(url, '_blank');
         } else {
-          alert('Failed to generate report.');
+          alert('Failed to generate PDF report.');
         }
       }
     );

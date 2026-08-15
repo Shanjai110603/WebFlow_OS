@@ -160,23 +160,30 @@ export const SidePanelApp: React.FC = () => {
     }
   };
 
-  const handleExport = (format: 'md' | 'json' | 'csv') => {
+  const handleExport = (format: 'pdf' | 'md' | 'json' | 'csv' = 'pdf') => {
     if (!session) return;
     chrome.runtime.sendMessage(
       { type: 'EXPORT_REPORT', payload: { id: session.id, format } },
       (res) => {
         if (res && res.success && res.data) {
-          const mimeTypes = {
-            json: 'application/json',
-            csv: 'text/csv',
-            md: 'text/markdown',
-          };
-          const blob = new Blob([res.data], { type: mimeTypes[format] });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `weblens-report-${session.page.domain}.${format}`;
-          a.click();
+          if (format === 'pdf') {
+            const blob = new Blob([res.data], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+          } else {
+            const mimeTypes = {
+              json: 'application/json',
+              csv: 'text/csv',
+              md: 'text/markdown',
+              pdf: 'text/html',
+            };
+            const blob = new Blob([res.data], { type: mimeTypes[format] });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `weblens-report-${session.page.domain}.${format}`;
+            a.click();
+          }
         } else {
           alert('Export compiling failed.');
         }
