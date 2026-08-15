@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FixerState, AuditSession } from '@shared/types';
 import { DEFAULT_FIXER_STATE } from '@shared/constants';
+import { ReportEngine } from '@domain/report-engine';
 
 export const PopupApp: React.FC = () => {
   const [tab, setTab] = useState<chrome.tabs.Tab | null>(null);
@@ -157,15 +158,25 @@ export const PopupApp: React.FC = () => {
       alert('Please run a page audit first.');
       return;
     }
+
+    const openPdfReport = (htmlContent: string) => {
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    };
+
     chrome.runtime.sendMessage(
-      { type: 'EXPORT_REPORT', payload: { id: session.id, format: 'pdf' } },
+      { type: 'EXPORT_REPORT', payload: { id: session.id, tabId: tab?.id, session, format: 'pdf' } },
       (res) => {
         if (res && res.success && res.data) {
-          const blob = new Blob([res.data], { type: 'text/html' });
-          const url = URL.createObjectURL(blob);
-          window.open(url, '_blank');
+          openPdfReport(res.data);
         } else {
-          alert('Failed to generate PDF report.');
+          try {
+            const htmlContent = ReportEngine.compilePDF(session);
+            openPdfReport(htmlContent);
+          } catch (err) {
+            alert('Failed to generate PDF report.');
+          }
         }
       }
     );

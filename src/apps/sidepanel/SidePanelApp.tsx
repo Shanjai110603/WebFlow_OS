@@ -13,6 +13,8 @@ import { ReadabilityTab } from './components/ReadabilityTab';
 import { FixerTab } from './components/FixerTab';
 import { HistoryCompareTab } from './components/HistoryCompareTab';
 
+import { ReportEngine } from '@domain/report-engine';
+
 export const SidePanelApp: React.FC = () => {
   const [tabId, setTabId] = useState<number | null>(null);
   const [tabUrl, setTabUrl] = useState<string>('');
@@ -162,30 +164,51 @@ export const SidePanelApp: React.FC = () => {
 
   const handleExport = (format: 'pdf' | 'md' | 'json' | 'csv' = 'pdf') => {
     if (!session) return;
+
+    const triggerClientDownload = (outputData: string) => {
+      if (format === 'pdf') {
+        const blob = new Blob([outputData], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+      } else {
+        const mimeTypes = {
+          json: 'application/json',
+          csv: 'text/csv',
+          md: 'text/markdown',
+          pdf: 'text/html',
+        };
+        const blob = new Blob([outputData], { type: mimeTypes[format] });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `weblens-report-${session.page.domain}.${format}`;
+        a.click();
+      }
+    };
+
+    // Try background worker compilation first, fallback to client-side compile if background worker is unavailable
     chrome.runtime.sendMessage(
-      { type: 'EXPORT_REPORT', payload: { id: session.id, format } },
+      { type: 'EXPORT_REPORT', payload: { id: session.id, tabId, session, format } },
       (res) => {
         if (res && res.success && res.data) {
-          if (format === 'pdf') {
-            const blob = new Blob([res.data], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            window.open(url, '_blank');
-          } else {
-            const mimeTypes = {
-              json: 'application/json',
-              csv: 'text/csv',
-              md: 'text/markdown',
-              pdf: 'text/html',
-            };
-            const blob = new Blob([res.data], { type: mimeTypes[format] });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `weblens-report-${session.page.domain}.${format}`;
-            a.click();
-          }
+          triggerClientDownload(res.data);
         } else {
-          alert('Export compiling failed.');
+          // Client-side fallback compilation
+          try {
+            let compiledData = '';
+            if (format === 'pdf') {
+              compiledData = ReportEngine.compilePDF(session);
+            } else if (format === 'json') {
+              compiledData = ReportEngine.compileJSON(session);
+            } else if (format === 'csv') {
+              compiledData = ReportEngine.compileCSV(session);
+            } else {
+              compiledData = ReportEngine.compileMarkdown(session);
+            }
+            triggerClientDownload(compiledData);
+          } catch (err) {
+            alert('Export compiling failed.');
+          }
         }
       }
     );

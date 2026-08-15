@@ -201,7 +201,16 @@ async function routeCommand(message: any, sender: chrome.runtime.MessageSender):
 
     case 'EXPORT_REPORT': {
       const dump = await StorageClient.getDump();
-      const session = dump.history.find(s => s.id === payload.id);
+      let session = payload.session || dump.history.find(s => s.id === payload.id);
+
+      if (!session && payload.tabId) {
+        const tab = await getTab(payload.tabId);
+        if (tab && tab.url) {
+          const domain = new URL(tab.url).hostname;
+          session = dump.history.find(s => s.page.domain === domain);
+        }
+      }
+
       if (!session) {
         return {
           success: false,
