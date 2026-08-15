@@ -52,12 +52,16 @@ export const SCORING_POLICIES: Record<'accessibility' | 'privacy' | 'ux' | 'secu
   ux: {
     category: 'ux',
     startingScore: 100,
-    maxDeductionCap: 50, // Floor limit of 50
+    maxDeductionCap: 60, // Floor limit of 40
     deductionWeights: {
       'small-body-text': 10,
       'bad-line-height': 10,
       'sticky-overlay': 10,
-      'dense-content': 10
+      'dense-content': 10,
+      'unsized-media-cls': 10,
+      'render-blocking-scripts': 10,
+      'excessive-dom-budget': 15,
+      'lazy-loading-images': 5
     }
   },
   security: {

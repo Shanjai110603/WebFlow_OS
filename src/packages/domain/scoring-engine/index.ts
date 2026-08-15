@@ -97,11 +97,14 @@ export class ScoringEngine {
       });
     }
 
-    // Apply the floor cap limit
-    const finalScore = Math.max(
-      policy.startingScore - Math.min(totalDeducted, policy.maxDeductionCap),
-      0
-    );
+    // Apply PageSpeed non-linear diminishing returns penalty curve:
+    // Penalty = Cap * (1 - e^(-totalDeducted / Cap))
+    const cap = policy.maxDeductionCap;
+    const effectiveDeduction = totalDeducted > 0
+      ? Math.round(cap * (1 - Math.exp(-totalDeducted / cap)))
+      : 0;
+
+    const finalScore = Math.max(policy.startingScore - effectiveDeduction, 0);
 
     return {
       category,
@@ -172,11 +175,13 @@ export class ScoringEngine {
       });
     }
 
-    // Apply the floor cap limit
-    const finalScore = Math.max(
-      policy.startingScore - Math.min(totalDeducted, policy.maxDeductionCap),
-      0
-    );
+    // Apply PageSpeed non-linear diminishing returns penalty curve
+    const cap = policy.maxDeductionCap;
+    const effectiveDeduction = totalDeducted > 0
+      ? Math.round(cap * (1 - Math.exp(-totalDeducted / cap)))
+      : 0;
+
+    const finalScore = Math.max(policy.startingScore - effectiveDeduction, 0);
 
     return {
       category: 'privacy',

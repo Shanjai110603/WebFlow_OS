@@ -64,17 +64,18 @@ describe('Tracker Classification Mapping', () => {
 });
 
 describe('Scoring Engine Calculations', () => {
-  it('should calculate accessibility scores with correct deductions', () => {
+  it('should calculate accessibility scores with correct PageSpeed non-linear deductions', () => {
     const rawIssues: any[] = [
       { engine: 'accessibility', ruleId: 'missing-alt-text' }, // -5
       { engine: 'accessibility', ruleId: 'contrast' } // -10
     ];
 
     const result = ScoringEngine.calculate(rawIssues, false, 0, false);
-    expect(result.accessibility).toBe(85);
+    // PageSpeed non-linear curve: 60 * (1 - e^(-15/60)) = ~13 penalty -> 100 - 13 = 87
+    expect(result.accessibility).toBe(87);
   });
 
-  it('should cap deductions to floor caps', () => {
+  it('should apply PageSpeed non-linear diminishing returns on high issue counts', () => {
     const rawIssues: any[] = [
       { engine: 'accessibility', ruleId: 'contrast' },
       { engine: 'accessibility', ruleId: 'contrast' },
@@ -86,13 +87,14 @@ describe('Scoring Engine Calculations', () => {
     ];
 
     const result = ScoringEngine.calculate(rawIssues, false, 0, false);
-    // Max accessibility deduction cap is 60 points (Starting: 100, Floor: 40)
-    expect(result.accessibility).toBe(40);
+    // Max accessibility deduction cap is 60 points with diminishing returns: 60 * (1 - e^(-70/60)) = ~41 -> 100 - 41 = 59
+    expect(result.accessibility).toBe(59);
   });
 
-  it('should calculate privacy score based on HTTP state and trackers', () => {
+  it('should calculate privacy score based on HTTP state and trackers using PageSpeed curve', () => {
     const result = ScoringEngine.calculate([], true, 2, false); // HTTP Insecure (-30), 2 Trackers (-10)
-    expect(result.privacy).toBe(60); // 100 - 40 = 60
+    // 70 * (1 - e^(-40/70)) = ~30 penalty -> 100 - 30 = 70
+    expect(result.privacy).toBe(70);
   });
 });
 

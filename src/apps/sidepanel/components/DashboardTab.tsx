@@ -152,6 +152,36 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
         </div>
       )}
 
+      {/* Core Web Vitals & Performance Health Card */}
+      <div className="glass-card flex flex-col gap-2" style={{ padding: 12 }}>
+        <div className="flex items-center justify-between">
+          <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: 0.5 }}>
+            ⚡ Core Web Vitals & Performance Health
+          </h3>
+          <span className="badge badge-success" style={{ fontSize: 9 }}>PageSpeed Standard</span>
+        </div>
+        <div className="grid grid-cols-3 gap-2" style={{ marginTop: 4 }}>
+          <div className="flex flex-col items-center" style={{ background: 'rgba(255,255,255,0.03)', padding: 8, borderRadius: 8 }}>
+            <span style={{ fontSize: 12, fontWeight: 800, color: session.issues.some(i => i.ruleId === 'unsized-media-cls') ? 'var(--accent-amber)' : 'var(--accent-green)' }}>
+              {session.issues.some(i => i.ruleId === 'unsized-media-cls') ? '⚠️ High Risk' : '🟢 Low Shift'}
+            </span>
+            <span style={{ fontSize: 9, color: 'var(--text-secondary)', marginTop: 2 }}>CLS Shift Risk</span>
+          </div>
+          <div className="flex flex-col items-center" style={{ background: 'rgba(255,255,255,0.03)', padding: 8, borderRadius: 8 }}>
+            <span style={{ fontSize: 12, fontWeight: 800, color: session.issues.some(i => i.ruleId === 'render-blocking-scripts') ? 'var(--accent-amber)' : 'var(--accent-green)' }}>
+              {session.issues.some(i => i.ruleId === 'render-blocking-scripts') ? '⚠️ Blocking' : '🟢 Non-Blocking'}
+            </span>
+            <span style={{ fontSize: 9, color: 'var(--text-secondary)', marginTop: 2 }}>Head Scripts</span>
+          </div>
+          <div className="flex flex-col items-center" style={{ background: 'rgba(255,255,255,0.03)', padding: 8, borderRadius: 8 }}>
+            <span style={{ fontSize: 12, fontWeight: 800, color: session.issues.some(i => i.ruleId === 'excessive-dom-budget') ? 'var(--accent-red)' : 'var(--accent-green)' }}>
+              {session.issues.some(i => i.ruleId === 'excessive-dom-budget') ? '🔴 High Budget' : '🟢 Optimal'}
+            </span>
+            <span style={{ fontSize: 9, color: 'var(--text-secondary)', marginTop: 2 }}>DOM Budget</span>
+          </div>
+        </div>
+      </div>
+
       {/* Priority Quick Wins Section */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">

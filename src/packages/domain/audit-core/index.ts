@@ -47,6 +47,7 @@ import {
 
 import { SECURITY_RULES } from '../security-engine';
 import { SEO_RULES } from '../seo-engine';
+import { PERFORMANCE_RULES } from '../performance-engine';
 
 export class RuleRegistry {
   private rules: Map<string, AuditRule> = new Map();
@@ -152,6 +153,9 @@ export function createDefaultRegistry(): RuleRegistry {
 
   // 5. SEO
   SEO_RULES.forEach(rule => registry.register(rule));
+
+  // 6. Performance & Core Web Vitals
+  PERFORMANCE_RULES.forEach(rule => registry.register(rule));
 
   return registry;
 }
@@ -489,6 +493,31 @@ export class IssueNormalizer {
       subcategory: 'Semantic Richness',
       whyItMatters: 'Schema markup outlines catalog details, letting search results render rich snippets.',
       remediation: 'Inject JSON-LD schema blocks describing page/product categories.'
+    },
+    // Performance Rules Details
+    'unsized-media-cls': {
+      title: 'Unsized media element (CLS Layout Shift Risk)',
+      subcategory: 'Core Web Vitals',
+      whyItMatters: 'Images and iframes without explicit dimensions cause Cumulative Layout Shifts (CLS) as media assets load, frustrating readers.',
+      remediation: 'Specify explicit width and height attributes or inline aspect-ratio CSS properties.'
+    },
+    'render-blocking-scripts': {
+      title: 'Render-blocking script in head',
+      subcategory: 'Core Web Vitals',
+      whyItMatters: 'Synchronous scripts in the document head block HTML parsing, delaying First Contentful Paint (FCP) and page interactivity.',
+      remediation: 'Add defer or async attributes to non-critical external script tags.'
+    },
+    'excessive-dom-budget': {
+      title: 'Excessive DOM element tree count',
+      subcategory: 'Performance Budget',
+      whyItMatters: 'Large DOM trees increase browser memory consumption, cause longer style recalculations, and slow down interaction response times.',
+      remediation: 'Simplify page component structure, remove unused offscreen DOM nodes, and paginate long listings.'
+    },
+    'lazy-loading-images': {
+      title: 'Offscreen images missing lazy loading',
+      subcategory: 'Performance Budget',
+      whyItMatters: 'Eagerly downloading non-critical offscreen images consumes network bandwidth and delays critical hero asset loading.',
+      remediation: 'Add loading="lazy" attributes to offscreen image tags.'
     }
   };
 
