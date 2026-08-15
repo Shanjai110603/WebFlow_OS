@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ScanProfileType } from '@shared/types';
 
 interface HeaderProps {
@@ -21,12 +21,28 @@ export const Header: React.FC<HeaderProps> = ({
   isAuditing,
 }) => {
   const [showReportMenu, setShowReportMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const isSecure = url.startsWith('https:');
+
+  // Close dropdown menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowReportMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   return (
     <div
       className="glass-card flex flex-col gap-3"
       style={{
+        position: 'relative',
+        zIndex: 50,
         borderRadius: 16,
         padding: '14px 16px',
         marginBottom: 16,
@@ -95,7 +111,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Controls Bar: Preset, Report Generator & Audit Button */}
-      <div className="flex items-center gap-2" style={{ position: 'relative' }}>
+      <div className="flex items-center gap-2" style={{ position: 'relative', zIndex: 60 }}>
         <select
           value={scanProfile}
           onChange={(e) => onProfileChange(e.target.value as ScanProfileType)}
@@ -119,7 +135,7 @@ export const Header: React.FC<HeaderProps> = ({
         </select>
 
         {onGenerateReport && (
-          <div style={{ position: 'relative' }}>
+          <div ref={menuRef} style={{ position: 'relative' }}>
             <button
               className="btn btn-secondary"
               onClick={() => setShowReportMenu(!showReportMenu)}
@@ -139,12 +155,17 @@ export const Header: React.FC<HeaderProps> = ({
                 className="glass-card flex flex-col gap-1 animate-fade-in"
                 style={{
                   position: 'absolute',
-                  top: '110%',
+                  top: '115%',
                   right: 0,
-                  zIndex: 100,
-                  minWidth: 160,
+                  zIndex: 9999,
+                  minWidth: 165,
                   padding: 6,
-                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.6)',
+                  background: 'rgba(18, 18, 32, 0.96)',
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                  border: '1px solid rgba(139, 92, 246, 0.4)',
+                  borderRadius: 12,
+                  boxShadow: '0 12px 32px rgba(0, 0, 0, 0.85), 0 0 16px rgba(139, 92, 246, 0.2)',
                 }}
               >
                 <button
@@ -153,7 +174,7 @@ export const Header: React.FC<HeaderProps> = ({
                     onGenerateReport('md');
                     setShowReportMenu(false);
                   }}
-                  style={{ justifyContent: 'flex-start', padding: '6px 10px', fontSize: 11 }}
+                  style={{ justifyContent: 'flex-start', padding: '7px 10px', fontSize: 11 }}
                 >
                   📝 Markdown (.md)
                 </button>
@@ -163,7 +184,7 @@ export const Header: React.FC<HeaderProps> = ({
                     onGenerateReport('csv');
                     setShowReportMenu(false);
                   }}
-                  style={{ justifyContent: 'flex-start', padding: '6px 10px', fontSize: 11 }}
+                  style={{ justifyContent: 'flex-start', padding: '7px 10px', fontSize: 11 }}
                 >
                   📊 CSV Spreadsheet
                 </button>
@@ -173,7 +194,7 @@ export const Header: React.FC<HeaderProps> = ({
                     onGenerateReport('json');
                     setShowReportMenu(false);
                   }}
-                  style={{ justifyContent: 'flex-start', padding: '6px 10px', fontSize: 11 }}
+                  style={{ justifyContent: 'flex-start', padding: '7px 10px', fontSize: 11 }}
                 >
                   ⚙️ Raw JSON
                 </button>
